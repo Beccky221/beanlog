@@ -1,6 +1,6 @@
 /* 豆袋小记离线缓存：页面导航走网络优先，静态资源走缓存优先
    注意：全部使用相对路径，应用可能部署在子路径下 */
-const CACHE = 'beanlog-v3'
+const CACHE = 'beanlog-v4'
 const ENTRY = './index.html'
 
 self.addEventListener('install', (event) => {
