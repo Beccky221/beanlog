@@ -104,12 +104,28 @@ npm run test:v1      # 旧版备份导入测试：内联照片是否正确转进
 
 ## 部署
 
-构建产物提交在 **`docs/`** 目录，GitHub Pages 从这里发布（分支 `main` / 目录 `/docs`）。
+当前 GitHub Pages 的发布源是 **`main` 分支 / 根目录**，所以 `npm run build` 会把产物
+**同时**写到两个地方，提交后即可生效：
+
+| 位置 | 用途 |
+| --- | --- |
+| 根目录（`index.html` + `assets/` + 图标 + `manifest.webmanifest` + `sw.js` + `404.html`） | 当前 Pages 发布源，改完推上去就生效 |
+| `docs/` | 标准输出目录，如果你想改用 GitHub Actions 或把发布源设成 `/docs`，用它 |
 
 ```bash
 npm run build
 git add -A && git commit -m "更新构建产物" && git push
 ```
+
+> ⚠️ 注意：为了兼容根目录发布，**仓库里的 `index.html` 是构建产物，不是开发用的模板**。
+> 想跑 `npm run dev`（热更新开发）时，先恢复模板：
+> ```bash
+> git checkout f0bf920 -- index.html   # f0bf920 是模板还在时的提交
+> npm run dev
+> ```
+> 也可以自己新建一个最小模板（内容就是标准 Vite 模板：`<script type="module" src="/src/main.tsx">`）。
+> 如果你把 Pages 发布源改成 `/docs`，就可以把根目录的产物删掉、`index.html` 恢复成模板，
+> 那样开发体验最干净。
 
 改动 `public/sw.js` 的缓存策略或换了一批静态资源时，
 记得把 `sw.js` 里的 `CACHE` 版本号 +1，否则老用户会继续用缓存里的旧文件。

@@ -12,7 +12,10 @@ dist
 dist-ssr
 *.local
 
-# 构建产物在 docs/，需要提交（GitHub Pages 从这里发布），别忽略
+# 构建产物两个位置都要提交：
+#   docs/    —— 标准输出目录（以后想把 Pages 源改成 /docs 就用它）
+#   根目录   —— 当前 Pages 发布源就是 main / (root)，这里必须放一份可运行产物
+# 两个位置都由 npm run build 生成，不要手改。
 
 # 单文件版产物（用 npm run build:single 随时生成）
 single

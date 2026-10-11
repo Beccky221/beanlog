@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="/beanlog/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>豆袋小记</title>
+    <!-- 添加到主屏幕后全屏运行，像小程序一样 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="豆袋小记" />
+    <meta name="theme-color" content="#F0F6F0" />
+    <!-- 用相对路径：部署在 GitHub Pages 子路径（/beanlog/）下也能找到 -->
+    <link rel="apple-touch-icon" href="./icon.png" />
+    <link rel="icon" type="image/png" href="./icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <script>
+      // 首屏就把主题贴上，避免从默认主题闪一下再切换
+      try {
+        var t = localStorage.getItem('beanlog.theme.v1')
+        document.documentElement.dataset.theme = t === 'beige' ? 'beige' : 'green'
+      } catch (e) {
+        document.documentElement.dataset.theme = 'green'
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-BsligZXS.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DxhcXDlu.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
