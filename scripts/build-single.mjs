@@ -55,14 +55,14 @@ async function inlineStyle(html) {
 async function inlineIcon(html) {
   const png = await readFile(path.join(dist, 'icon.png'))
   const dataUrl = `data:image/png;base64,${png.toString('base64')}`
-  return html.replace(/(href|src)="\.?\/?icon\.png"/g, (_, attr) => `${attr}="${dataUrl}"`)
+  return html.replace(/(href|src)="\.?\/?(?:icon|apple-touch-icon-handpaint-v2)\.png"/g, (_, attr) => `${attr}="${dataUrl}"`)
 }
 
 /** manifest 内联成 data URL，图标仍指向同目录的文件 */
 async function inlineManifest(html) {
   let manifest = (await readFile(path.join(dist, 'manifest.webmanifest'), 'utf8')).trim()
   const dataUrl = `data:application/manifest+json,${encodeURIComponent(manifest)}`
-  return html.replace(/href="\.?\/?manifest\.webmanifest"/, () => `href="${dataUrl}"`)
+  return html.replace(/href="\.?\/?manifest(?:-handpaint-v2)?\.webmanifest"/, () => `href="${dataUrl}"`)
 }
 
 async function main() {
