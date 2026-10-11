@@ -57,7 +57,7 @@ export function bagImage(opts: BagOptions): string {
   const labelLines = lines
     .map(
       (ln, i) =>
-        `<text x="150" y="${textStartY + i * lineHeight}" text-anchor="middle" font-family="'Songti SC','Noto Serif SC',serif" font-size="24" font-weight="600" fill="${labelTextColor}">${escapeXml(ln)}</text>`
+        `<text x="150" y="${textStartY + i * lineHeight}" text-anchor="middle" font-family="'Kaiti SC','STKaiti','KaiTi',cursive" font-size="24" font-weight="600" fill="${labelTextColor}">${escapeXml(ln)}</text>`
     )
     .join('')
 
@@ -88,7 +88,7 @@ export function bagImage(opts: BagOptions): string {
   ${labelLines}
   ${
     sub
-      ? `<text x="150" y="256" text-anchor="middle" font-family="Georgia,serif" font-size="11" letter-spacing="1.5" fill="${labelTextColor}" opacity="0.75">${escapeXml(sub)}</text>`
+      ? `<text x="150" y="256" text-anchor="middle" font-family="'Kaiti SC','STKaiti','KaiTi',cursive" font-size="11" letter-spacing="1.5" fill="${labelTextColor}" opacity="0.75">${escapeXml(sub)}</text>`
       : ''
   }
   <!-- 底部排气阀 -->

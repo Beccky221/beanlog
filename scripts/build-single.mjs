@@ -47,7 +47,14 @@ async function inlineScript(html) {
 async function inlineStyle(html) {
   const m = html.match(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/)
   if (!m) return html
-  const css = await readFile(path.join(dist, m[1]), 'utf8')
+  const cssPath = path.join(dist, m[1])
+  let css = await readFile(cssPath, 'utf8')
+  // 将中文手写字体一起内联，file:// 打开也能显示完整字体。
+  const fontUrls = [...new Set([...css.matchAll(/url\(["']?([^"')]+\.woff2)["']?\)/g)].map(match => match[1]))]
+  for (const url of fontUrls) {
+    const font = await readFile(path.resolve(path.dirname(cssPath), url))
+    css = css.replaceAll(url, `data:font/woff2;base64,${font.toString('base64')}`)
+  }
   return replaceOnce(html, m[0], `<style>${css}</style>`)
 }
 

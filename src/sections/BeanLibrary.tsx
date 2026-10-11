@@ -160,8 +160,8 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
         </p>
         <div className="flex items-end justify-between mt-1.5">
           <h1
-            className="text-[34px] leading-none font-bold text-[var(--c-ink)]"
-            style={{ fontFamily: "'Songti SC','Noto Serif SC',serif" }}
+            className="bl-journal-title text-[34px] leading-none font-bold text-[var(--c-ink)]"
+            style={{ fontFamily: "var(--font-title-handwritten)" }}
           >
             豆库
           </h1>

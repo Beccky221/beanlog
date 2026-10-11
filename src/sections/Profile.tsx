@@ -61,8 +61,8 @@ export function Profile({
       >
         <p className="text-[11px] tracking-[0.35em] text-[var(--c-ink-faint)] font-medium">BEANLOG</p>
         <h1
-          className="text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
-          style={{ fontFamily: "'Songti SC','Noto Serif SC',serif" }}
+          className="bl-journal-title text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
+          style={{ fontFamily: "var(--font-title-handwritten)" }}
         >
           我的
         </h1>
@@ -103,7 +103,7 @@ export function Profile({
       <section className="bl-theme-section">
         <button type="button" className="bl-theme-trigger" aria-expanded={themeOpen} aria-controls="bl-theme-options" onClick={() => setThemeOpen(!themeOpen)}>
           <span className="bl-theme-icon" aria-hidden><Palette size={20} /></span>
-          <span className="bl-theme-heading"><span className="bl-theme-title">配色与纸感</span><span className="bl-theme-subtitle">给咖啡日常，换一种心情</span></span>
+          <span className="bl-theme-heading"><span className="bl-theme-title">主题颜色</span><span className="bl-theme-subtitle">给咖啡日常，换一种心情</span></span>
           <span className="bl-theme-current"><i style={{background:activeTheme.colors.accent}} />{activeTheme.name}</span>
           <span className="bl-theme-chevron" aria-hidden>{themeOpen ? '−' : '＋'}</span>
         </button>
@@ -140,7 +140,7 @@ export function Profile({
         <div className="bg-[var(--c-primary)] rounded-2xl px-5 py-5 text-[var(--c-primary-ink)]">
           <p
             className="text-[18px] font-semibold"
-            style={{ fontFamily: "'Songti SC','Noto Serif SC',serif" }}
+            style={{ fontFamily: "var(--font-handwritten)" }}
           >
             豆袋小记
           </p>

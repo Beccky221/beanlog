@@ -63,7 +63,7 @@ export function PosterWall({ beans, onBack }: PosterWallProps) {
         >
           返回调整
         </button>
-        <h2 className="text-[16px] font-semibold text-[var(--c-ink)]">海报预览</h2>
+        <h2 className="bl-journal-title bl-journal-title-compact text-[16px] font-semibold text-[var(--c-ink)]">海报预览</h2>
         <span className="w-[76px]" />
       </div>
 

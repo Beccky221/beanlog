@@ -25,8 +25,8 @@ export function DailyLog({ records, onChange, onSavePhoto, onDropPhotos }: Daily
           DAILY BREW JOURNAL
         </p>
         <h1
-          className="text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
-          style={{ fontFamily: "'Songti SC','Noto Serif SC',serif" }}
+          className="bl-journal-title text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
+          style={{ fontFamily: "var(--font-title-handwritten)" }}
         >
           每日记录
         </h1>

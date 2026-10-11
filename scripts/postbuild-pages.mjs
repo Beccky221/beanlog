@@ -6,7 +6,7 @@
  *    （例如 /beanlog/a/b），相对路径会解析错，所以补一个 <base> 指回站点根。
  * 2. .nojekyll —— 别让 Pages 用 Jekyll 处理 assets 目录。
  */
-import { readFile, writeFile, cp } from 'node:fs/promises'
+import { readFile, writeFile, cp, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,8 +25,9 @@ html = html.replace(/(<link rel="apple-touch-icon" href=")[^"]+(" \/>)/, '$1./ap
 html = html.replace(/(<link rel="icon" type="image\/png" href=")[^"]+(" \/>)/, '$1./apple-touch-icon-handpaint-v2.png$2')
 await writeFile(path.join(docs, 'index.html'), html, 'utf8')
 const runtimeAssets = [...html.matchAll(/(?:src|href)="(\.\/assets\/[^" ]+\.(?:js|css))"/g)].map(m => m[1])
+const fontAssets = (await readdir(path.join(docs, 'assets'))).filter(name => name.endsWith('.woff2')).map(name => './assets/' + name)
 let worker = await readFile(path.join(docs, 'sw.js'), 'utf8')
-worker = worker.replace(/const PRECACHE = \[[^\n]+\]/, 'const PRECACHE = ' + JSON.stringify(['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './icon.png', './apple-touch-icon-handpaint-v2.png', './app-icon-handpaint-v2-192.png', './app-icon-handpaint-v2-512.png', './app-icon-handpaint-v2-maskable.png', './manifest-handpaint-v2.webmanifest', ...runtimeAssets]))
+worker = worker.replace(/const PRECACHE = \[[^\n]+\]/, 'const PRECACHE = ' + JSON.stringify(['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './icon.png', './apple-touch-icon-handpaint-v2.png', './app-icon-handpaint-v2-192.png', './app-icon-handpaint-v2-512.png', './app-icon-handpaint-v2-maskable.png', './manifest-handpaint-v2.webmanifest', ...runtimeAssets, ...fontAssets]))
 await writeFile(path.join(docs, 'sw.js'), worker, 'utf8')
 const withBase = html.replace(
   '<meta charset="UTF-8" />',

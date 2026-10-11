@@ -4,7 +4,7 @@ import { blobToDataUrl } from '@/lib/image'
 import { bagImage } from '@/lib/bagImage'
 import { cssVar } from '@/lib/theme'
 
-const SERIF = `'Songti SC','Noto Serif SC','STSong',serif`
+const SERIF = `'LXGW WenKai','Kaiti SC','STKaiti','KaiTi',cursive`
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -84,6 +84,8 @@ function drawContain(
  * 预览与保存共用这一份渲染结果，保证所见即所得。
  */
 export async function renderPoster(beans: Bean[]): Promise<string> {
+  // 等字体准备好再绘制，确保保存的海报和界面使用同样的手写字体。
+  await document.fonts.load('400 22px "LXGW WenKai"')
   const shown = beans.slice(0, 9)
   const cols = 3
   const rows = Math.max(1, Math.ceil(shown.length / cols))
@@ -115,7 +117,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
 
   // 顶部刊头
   ctx.fillStyle = faint
-  ctx.font = `500 22px Georgia, serif`
+  ctx.font = `500 22px ${SERIF}`
   ctx.textBaseline = 'alphabetic'
   const headerY = 96
   ctx.letterSpacing = '6px'
@@ -132,7 +134,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
   ctx.fillText('我的咖啡收藏', margin, headerY + 96)
 
   ctx.fillStyle = faint
-  ctx.font = `500 20px Georgia, serif`
+  ctx.font = `500 20px ${SERIF}`
   ctx.letterSpacing = '5px'
   ctx.fillText('A LITTLE ARCHIVE OF GOOD COFFEE', margin, headerY + 146)
   ctx.letterSpacing = '0px'
@@ -159,7 +161,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
 
     // 编号 + 名称（名字太长分两行，比截断成省略号好认）
     ctx.fillStyle = faint
-    ctx.font = `400 20px Georgia, serif`
+    ctx.font = `400 20px ${SERIF}`
     ctx.fillText(String(i + 1).padStart(2, '0'), cx + 18, cy + 252)
 
     ctx.fillStyle = ink
@@ -177,7 +179,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
   ctx.fillText('留住风味，也留住生活。', margin, footY)
 
   ctx.letterSpacing = '5px'
-  ctx.font = `500 20px Georgia, serif`
+  ctx.font = `500 20px ${SERIF}`
   const brand = 'BEANLOG'
   const brandW = ctx.measureText(brand).width
   ctx.fillText(brand, W - margin - brandW - 30, footY)

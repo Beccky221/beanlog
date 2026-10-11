@@ -62,8 +62,8 @@ export function Repurchase({ beans, onUpdate, onOpen, initialList, onBack }: Rep
             ANOTHER GOOD CUP
           </p>
           <h1
-            className="text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
-            style={{ fontFamily: "'Songti SC','Noto Serif SC',serif" }}
+            className="bl-journal-title text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
+            style={{ fontFamily: "var(--font-title-handwritten)" }}
           >
             回购
           </h1>

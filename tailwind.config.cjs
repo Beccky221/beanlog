@@ -23,7 +23,7 @@ module.exports = {
         danger: 'var(--c-danger)',
       },
       fontFamily: {
-        serif: ["'Songti SC'", "'Noto Serif SC'", "'STSong'", 'serif'],
+        serif: ['var(--font-handwritten)'],
       },
     },
   },
