@@ -1,0 +1,580 @@
+import { useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, ImagePlus, PenLine, Plus, Trash2, X } from 'lucide-react'
+import { BREW_METHODS, type DailyRecord } from '@/types/bean'
+import { processPhotoFile } from '@/lib/image'
+import { usePhotoUrls } from '@/lib/usePhoto'
+
+interface DailyRecordsProps {
+  records: DailyRecord[] | undefined
+  onChange: (records: DailyRecord[]) => void
+  onSavePhoto: (blob: Blob, original?: Blob) => Promise<{ id: string; originalId?: string }>
+  onDropPhotos: (ids: (string | undefined)[]) => void
+}
+
+const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+const MAX_PHOTOS = 12
+
+function fmt(d: Date): string {
+  const m = `${d.getMonth() + 1}`.padStart(2, '0')
+  const day = `${d.getDate()}`.padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+function fmtCn(date: string): string {
+  const [, m, d] = date.split('-')
+  return `${Number(m)} 月 ${Number(d)} 日`
+}
+
+function newId(): string {
+  return `rec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function emptyRecord(date: string): DailyRecord {
+  // 默认选中第一种冲煮方式，与编辑器里默认高亮的 pill 保持一致
+  return { id: newId(), date, photoIds: [], method: BREW_METHODS[0].id, values: {} }
+}
+
+function hasContent(r: DailyRecord): boolean {
+  return (
+    r.photoIds.length > 0 ||
+    Object.values(r.values).some((v) => (v ?? '').trim() !== '') ||
+    (r.note ?? '').trim() !== ''
+  )
+}
+
+/** 每日记录：月历 + 选中日期的记录列表 + 页中页编辑器（一天可记多条） */
+export function DailyRecords({
+  records,
+  onChange,
+  onSavePhoto,
+  onDropPhotos,
+}: DailyRecordsProps) {
+  const list = useMemo(() => records ?? [], [records])
+  const today = fmt(new Date())
+
+  const [cursor, setCursor] = useState(() => new Date())
+  const [selected, setSelected] = useState(today)
+  const [editing, setEditing] = useState<string | null>(null)
+
+  const dayRecords = (date: string) => list.filter((r) => r.date === date)
+  const datesWithRecords = useMemo(() => new Set(list.map((r) => r.date)), [list])
+
+  // ---- 日历格子 ----
+  const year = cursor.getFullYear()
+  const month = cursor.getMonth()
+  const offset = (new Date(year, month, 1).getDay() + 6) % 7 // 周一开头
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells: (string | null)[] = []
+  for (let i = 0; i < offset; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(fmt(new Date(year, month, d)))
+
+  const shiftMonth = (delta: number) => setCursor(new Date(year, month + delta, 1))
+
+  const selRecords = dayRecords(selected)
+
+  /** 用编辑器交回的一组模块整体替换这一天的记录 */
+  const saveDay = (date: string, entries: DailyRecord[]) => {
+    const next = list.filter((r) => r.date !== date).concat(entries)
+    next.sort((a, b) => (a.date < b.date ? 1 : -1))
+    onChange(next)
+  }
+
+  const removeOne = (rec: DailyRecord) => {
+    onDropPhotos(rec.photoIds)
+    onChange(list.filter((r) => r.id !== rec.id))
+  }
+
+  return (
+    <div className="bg-[var(--c-surface)] rounded-2xl px-4 py-3.5 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
+      {/* 月份切换 */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => shiftMonth(-1)}
+          aria-label="上个月"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--c-soft-ink)] active:bg-[var(--c-soft)]"
+        >
+          <ChevronLeft size={17} />
+        </button>
+        <p className="text-[14px] font-semibold text-[var(--c-ink)]">
+          {year} 年 {month + 1} 月
+        </p>
+        <button
+          type="button"
+          onClick={() => shiftMonth(1)}
+          aria-label="下个月"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--c-soft-ink)] active:bg-[var(--c-soft)]"
+        >
+          <ChevronRight size={17} />
+        </button>
+      </div>
+
+      {/* 星期表头 */}
+      <div className="grid grid-cols-7 mt-1">
+        {WEEKDAYS.map((w) => (
+          <p key={w} className="text-center text-[11px] text-[var(--c-ink-ghost)] py-1">
+            {w}
+          </p>
+        ))}
+      </div>
+
+      {/* 日期格子 */}
+      <div className="grid grid-cols-7">
+        {cells.map((date, i) => {
+          if (!date) return <span key={`e${i}`} />
+          const day = Number(date.split('-')[2])
+          const hasRecord = datesWithRecords.has(date)
+          const isToday = date === today
+          const isSelected = date === selected
+          return (
+            <button
+              key={date}
+              type="button"
+              onClick={() => setSelected(date)}
+              className="flex flex-col items-center py-1"
+            >
+              <span
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] transition-colors ${
+                  isSelected
+                    ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)] font-semibold'
+                    : isToday
+                      ? 'ring-1 ring-[var(--c-chip-ink)] text-[var(--c-ink)] font-semibold'
+                      : 'text-[var(--c-ink)] active:bg-[var(--c-soft)]'
+                }`}
+              >
+                {day}
+              </span>
+              <span
+                className={`w-1 h-1 rounded-full mt-0.5 ${
+                  hasRecord ? (isSelected ? 'bg-[var(--c-primary)]' : 'bg-[var(--c-chip-ink)]') : 'bg-transparent'
+                }`}
+              />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 记录今天 */}
+      <button
+        type="button"
+        onClick={() => {
+          setSelected(today)
+          setEditing(today)
+        }}
+        className="mt-2.5 w-full h-10 rounded-full bg-[var(--c-primary)] text-[var(--c-primary-ink)] text-[13.5px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+      >
+        <PenLine size={14} /> {datesWithRecords.has(today) ? '补充今天的记录' : '记录今天'}
+      </button>
+
+      {/* 选中日期的记录列表 */}
+      {selected !== today && (
+        <p className="mt-3.5 text-[12px] text-[var(--c-ink-faint)]">{fmtCn(selected)}</p>
+      )}
+      {selRecords.length > 0 ? (
+        <div className="mt-2 space-y-2">
+          {selRecords.map((rec, idx) => (
+            <div key={rec.id} className="rounded-xl bg-[var(--c-surface-soft)] p-3">
+              {selRecords.length > 1 && (
+                <p className="text-[11px] text-[var(--c-ink-ghost)] mb-1.5">第 {idx + 1} 条</p>
+              )}
+              {rec.photoIds.length > 0 && (
+                <RecordPhotos photoIds={rec.photoIds} label={fmtCn(selected)} />
+              )}
+              <RecordParams record={rec} />
+              <div className="flex gap-2 mt-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditing(selected)}
+                  className="px-3 py-1.5 rounded-full bg-white text-[12.5px] text-[var(--c-soft-ink)] active:scale-95 transition-transform"
+                >
+                  编辑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`删除 ${fmtCn(selected)} 的这条记录吗？`)) removeOne(rec)
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-white text-[12.5px] text-[var(--c-danger)] active:scale-95 transition-transform"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        selected !== today && (
+          <div className="mt-2 rounded-xl bg-[var(--c-surface-soft)] px-3 py-3.5 flex items-center justify-between">
+            <p className="text-[12.5px] text-[var(--c-ink-ghost)]">这一天还没有记录</p>
+            <button
+              type="button"
+              onClick={() => setEditing(selected)}
+              className="px-3 py-1.5 rounded-full bg-white text-[12.5px] text-[var(--c-soft-ink)] active:scale-95 transition-transform"
+            >
+              补记
+            </button>
+          </div>
+        )
+      )}
+
+      {list.length === 0 && (
+        <p className="text-[12px] text-[var(--c-ink-ghost)] mt-3">
+          每天喝了什么、用了什么参数，点「记录今天」记下来，日历上会留下小圆点。
+        </p>
+      )}
+
+      {/* 页中页编辑器 */}
+      {editing && (
+        <DayEditor
+          date={editing}
+          initial={dayRecords(editing)}
+          onSavePhoto={onSavePhoto}
+          onDropPhotos={onDropPhotos}
+          onClose={() => setEditing(null)}
+          onSave={(entries) => {
+            saveDay(editing, entries)
+            setEditing(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+/** 记录里的冲煮参数摘要行 */
+function RecordParams({ record }: { record: DailyRecord }) {
+  const method = BREW_METHODS.find((m) => m.id === record.method)
+  const parts = method
+    ? method.fields
+        .map((f) => {
+          const v = record.values[f.key]?.trim()
+          return v ? `${f.label} ${v}${f.unit ?? ''}` : null
+        })
+        .filter(Boolean)
+    : []
+  const note = record.note?.trim()
+  if (!method && parts.length === 0 && !note) return null
+  return (
+    <div className="mt-2">
+      {(method || parts.length > 0) && (
+        <p className="text-[12.5px] text-[var(--c-ink-soft)] leading-relaxed">
+          {method ? `${method.name} · ` : ''}
+          {parts.length > 0 ? parts.join(' · ') : '参数未填写'}
+        </p>
+      )}
+      {note && <p className="text-[12.5px] text-[var(--c-ink)] mt-1 leading-relaxed">{note}</p>}
+    </div>
+  )
+}
+
+/** 选中日期下，一条记录里已保存的照片 */
+function RecordPhotos({ photoIds, label }: { photoIds: string[]; label: string }) {
+  const urls = usePhotoUrls(photoIds)
+  return (
+    <div className="flex gap-2 overflow-x-auto">
+      {photoIds.map((id, i) =>
+        urls[i] ? (
+          <img
+            key={id}
+            src={urls[i]}
+            alt={`${label}的照片 ${i + 1}`}
+            className="w-16 h-16 rounded-lg object-cover shrink-0"
+            draggable={false}
+          />
+        ) : (
+          <div key={id} className="w-16 h-16 rounded-lg bg-[var(--c-surface)] shrink-0" />
+        ),
+      )}
+    </div>
+  )
+}
+
+interface DayEditorProps {
+  date: string
+  initial: DailyRecord[]
+  onClose: () => void
+  onSave: (entries: DailyRecord[]) => void
+  onSavePhoto: (blob: Blob, original?: Blob) => Promise<{ id: string; originalId?: string }>
+  onDropPhotos: (ids: (string | undefined)[]) => void
+}
+
+/** 某一天的页中页编辑器：一个模块 = 照片 + 冲煮参数，可再加多个模块 */
+function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }: DayEditorProps) {
+  const [entries, setEntries] = useState<DailyRecord[]>(() =>
+    initial.length > 0
+      ? initial.map((r) => ({ ...r, photoIds: [...r.photoIds], values: { ...r.values } }))
+      : [emptyRecord(date)],
+  )
+  /** 打开编辑器时的照片快照，用来判断退出时哪些新照片没被采用 */
+  const originalPhotos = useRef<Set<string>>(
+    new Set(initial.flatMap((r) => r.photoIds ?? [])),
+  )
+
+  const patchEntry = (id: string, patch: Partial<DailyRecord>) =>
+    setEntries((es) => es.map((e) => (e.id === id ? { ...e, ...patch } : e)))
+
+  const removeEntry = (id: string) =>
+    setEntries((es) => {
+      if (es.length <= 1) return [emptyRecord(date)]
+      return es.filter((e) => e.id !== id)
+    })
+
+  /** 退出/保存时，回收这次新增但最终没留下的照片 */
+  const pruneTempPhotos = (kept: DailyRecord[]) => {
+    const keptIds = new Set(kept.flatMap((e) => e.photoIds ?? []))
+    const all = new Set(entries.flatMap((e) => e.photoIds ?? []))
+    const dropped = [...all].filter((id) => !keptIds.has(id) && !originalPhotos.current.has(id))
+    if (dropped.length) onDropPhotos(dropped)
+  }
+
+  const save = () => {
+    const kept = entries.filter(hasContent).map((e) => ({ ...e, date }))
+    pruneTempPhotos(kept)
+    onSave(kept)
+  }
+
+  const close = () => {
+    // 直接返回：本次新加的照片全部回收，原有数据不动
+    const all = new Set(entries.flatMap((e) => e.photoIds ?? []))
+    const dropped = [...all].filter((id) => !originalPhotos.current.has(id))
+    if (dropped.length) onDropPhotos(dropped)
+    onClose()
+  }
+
+  return (
+    <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter">
+      {/* 顶栏 */}
+      <div className="sticky top-0 z-10 bg-[var(--c-app)]/90 backdrop-blur px-5 pt-5 pb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={close}
+          aria-label="返回"
+          className="w-10 h-10 rounded-full bg-white shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.1)] flex items-center justify-center text-[var(--c-ink)] active:scale-95 transition-transform"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <h2 className="text-[15px] font-semibold text-[var(--c-ink)]">{fmtCn(date)} · 每日记录</h2>
+        <button
+          type="button"
+          onClick={save}
+          className="px-4 h-10 rounded-full bg-white shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.1)] text-[14px] font-medium text-[var(--c-ink)] active:scale-95 transition-transform"
+        >
+          保存
+        </button>
+      </div>
+
+      {/* 记录模块列表 */}
+      {entries.map((entry, idx) => (
+        <EntryModule
+          key={entry.id}
+          entry={entry}
+          index={idx}
+          showIndex={entries.length > 1}
+          onPatch={(patch) => patchEntry(entry.id, patch)}
+          onRemove={() => removeEntry(entry.id)}
+          onSavePhoto={onSavePhoto}
+          onDropPhotos={onDropPhotos}
+        />
+      ))}
+
+      {/* 再加一条 */}
+      <div className="px-5 mt-4 pb-10">
+        <button
+          type="button"
+          onClick={() => setEntries((es) => [...es, emptyRecord(date)])}
+          className="w-full h-11 rounded-2xl border border-dashed border-[var(--c-ink-ghost)] text-[var(--c-soft-ink)] text-[13.5px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+        >
+          <Plus size={15} /> 再加一条记录
+        </button>
+        <p className="text-[12px] text-[var(--c-ink-ghost)] mt-3">
+          照片、参数、札记都不填的模块保存时会自动略去。
+        </p>
+      </div>
+    </div>
+  )
+}
+
+interface EntryModuleProps {
+  entry: DailyRecord
+  index: number
+  showIndex: boolean
+  onPatch: (patch: Partial<DailyRecord>) => void
+  onRemove: () => void
+  onSavePhoto: (blob: Blob, original?: Blob) => Promise<{ id: string; originalId?: string }>
+  onDropPhotos: (ids: (string | undefined)[]) => void
+}
+
+/** 一条每日记录模块：咖啡照片（点击添加）+ 冲煮参数 */
+function EntryModule({
+  entry,
+  index,
+  showIndex,
+  onPatch,
+  onRemove,
+  onSavePhoto,
+  onDropPhotos,
+}: EntryModuleProps) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const photoIds = entry.photoIds
+  const urls = usePhotoUrls(photoIds)
+  const method = BREW_METHODS.find((m) => m.id === entry.method) ?? BREW_METHODS[0]
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files || busy) return
+    const room = MAX_PHOTOS - photoIds.length
+    const picked = Array.from(files).slice(0, room)
+    if (!picked.length) return
+    setBusy(true)
+    try {
+      const added: string[] = []
+      for (const f of picked) {
+        const processed = await processPhotoFile(f)
+        const { id } = await onSavePhoto(processed.blob, processed.original)
+        added.push(id)
+      }
+      // 用最新的 photoIds 拼接，避免连续选图时互相覆盖
+      onPatch({ photoIds: [...photoIds, ...added] })
+    } catch (err) {
+      window.alert('照片保存失败，可能是本地空间不够了。可以先去「我的 → 数据管理」导出备份。')
+      console.error(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removePhotoAt = (i: number) => {
+    onDropPhotos([photoIds[i]])
+    onPatch({ photoIds: photoIds.filter((_, j) => j !== i) })
+  }
+
+  return (
+    <div className="mt-4">
+      {showIndex && (
+        <div className="px-5 mb-1.5 flex items-center justify-between">
+          <p className="text-[12px] text-[var(--c-ink-faint)]">第 {index + 1} 条</p>
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`删除第 ${index + 1} 条`}
+            className="flex items-center gap-1 text-[12px] text-[var(--c-danger)] active:opacity-70"
+          >
+            <Trash2 size={12} /> 删除这条
+          </button>
+        </div>
+      )}
+
+      {/* 咖啡照片：点击加图 */}
+      <div className="px-5">
+        {photoIds.length === 0 ? (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="w-full rounded-2xl bg-[var(--c-photo-well)] border border-dashed border-[var(--c-ink-ghost)] h-[120px] flex flex-col items-center justify-center gap-1.5 text-[var(--c-ink-faint)] active:scale-[0.99] transition-transform"
+          >
+            <ImagePlus size={20} />
+            <span className="text-[12.5px]">点击添加咖啡照片</span>
+          </button>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {photoIds.map((id, i) => (
+              <div key={id} className="relative aspect-square">
+                {urls[i] ? (
+                  <img
+                    src={urls[i]}
+                    alt={`照片 ${i + 1}`}
+                    className="w-full h-full rounded-xl object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-xl bg-[var(--c-surface-soft)]" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => removePhotoAt(i)}
+                  aria-label={`删除照片 ${i + 1}`}
+                  className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[var(--c-ink)] text-[var(--c-primary-ink)] flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+            {photoIds.length < MAX_PHOTOS && (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="aspect-square rounded-xl bg-[var(--c-photo-well)] border border-dashed border-[var(--c-ink-ghost)] flex flex-col items-center justify-center gap-1 text-[var(--c-ink-faint)] active:scale-[0.97] transition-transform"
+              >
+                <ImagePlus size={18} />
+                <span className="text-[11px]">加一张</span>
+              </button>
+            )}
+          </div>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void addPhotos(e.target.files)
+            e.target.value = ''
+          }}
+        />
+        {busy && <p className="text-[12px] text-[var(--c-ink-faint)] mt-2">正在处理照片…</p>}
+      </div>
+
+      {/* 冲煮参数 */}
+      <div className="px-5 mt-3">
+        <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
+          <div className="flex gap-2 py-3.5 border-b border-[var(--c-soft)] overflow-x-auto">
+            {BREW_METHODS.map((m) => {
+              const active = m.id === method.id
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => onPatch({ method: m.id })}
+                  className={`px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors ${
+                    active ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'bg-[var(--c-soft)] text-[var(--c-soft-ink)]'
+                  }`}
+                >
+                  {m.name}
+                </button>
+              )
+            })}
+          </div>
+          <div className="pt-3.5 grid grid-cols-2 gap-3">
+            {method.fields.map((f) => (
+              <label key={f.key} className="block">
+                <span className="text-[12px] text-[var(--c-ink-faint)]">
+                  {f.label}
+                  {f.unit ? ` (${f.unit})` : ''}
+                </span>
+                <input
+                  inputMode="decimal"
+                  value={entry.values[f.key] ?? ''}
+                  placeholder={f.placeholder}
+                  onChange={(e) =>
+                    onPatch({ values: { ...entry.values, [f.key]: e.target.value } })
+                  }
+                  className="mt-1 w-full bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)] placeholder:text-[var(--c-placeholder)]"
+                />
+              </label>
+            ))}
+          </div>
+          <div className="pb-3.5">
+            <input
+              value={entry.note ?? ''}
+              placeholder="札记：今天这杯怎么样？"
+              aria-label="札记"
+              onChange={(e) => onPatch({ note: e.target.value })}
+              className="w-full bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)] placeholder:text-[var(--c-placeholder)]"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

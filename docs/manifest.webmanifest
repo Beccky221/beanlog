@@ -2,13 +2,17 @@
   "name": "豆袋小记",
   "short_name": "豆袋小记",
   "description": "留住每一袋的名字，也留住喜欢的理由。",
+  "lang": "zh-CN",
+  "dir": "ltr",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#F0F6F0",
   "theme_color": "#F0F6F0",
+  "categories": ["food", "lifestyle", "utilities"],
   "icons": [
     {
       "src": "./icon-192.png",
@@ -27,6 +31,18 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "记一袋新豆子",
+      "short_name": "记新豆",
+      "url": "./?action=new"
+    },
+    {
+      "name": "每日记录",
+      "short_name": "每日记录",
+      "url": "./?action=daily"
     }
   ]
 }

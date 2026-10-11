@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   豆袋小记 —— 主题色板
+   --------------------------------------------------------------------------
+   所有界面颜色都走这一层 CSS 变量，切换主题只需要改 <html data-theme="...">。
+   绿色 = 原来的配色；米色 = 参考稿的纸感配色。
+   新增颜色时请同时在两套主题里补上，不要写死十六进制值。
+   ========================================================================== */
+
+:root,
+:root[data-theme='green'] {
+  color-scheme: light;
+
+  /* 底色与容器 */
+  --c-bg: #d9e7da;
+  --c-app: #f0f6f0;
+  --c-surface: #fcfffb;
+  --c-surface-soft: #edf4ed;
+
+  /* 文字 */
+  --c-ink: #2c4537;
+  --c-ink-soft: #6e8c7a;
+  --c-ink-faint: #83a48d;
+  --c-ink-ghost: #a4bfa9;
+  --c-placeholder: #b4ccba;
+
+  /* 线条与描边 */
+  --c-line: #dce9dc;
+  --c-line-soft: #dfece0;
+  --c-border: #d2e3d4;
+
+  /* 主色（按钮、选中态） */
+  --c-primary: #4f8a67;
+  --c-primary-ink: #f0f6f0;
+  --c-accent: #3e7a55;
+  --c-soft: #dfece0;
+  --c-soft-ink: #54705f;
+  --c-soft-hover: #c6ddc9;
+  --c-chip-ink: #7fa78a;
+  --c-tint: #c9decc;
+  --c-tint-ink: #4a6b57;
+  --c-photo-well: #e6f0e6;
+  --c-toggle-on: #5f9a76;
+
+  /* 语义色 */
+  --c-star: #e5a23b;
+  --c-danger: #a05a3c;
+  --c-danger-bg: #f6e8e2;
+  --c-danger-solid: #c0532f;
+  --c-danger-solid-hover: #a8451f;
+
+  /* 海报专用（canvas 里读这两个值） */
+  --c-poster-bg: #eff5ea;
+  --c-poster-frame: #cbdfce;
+
+  /* 阴影用色（rgb 分量，便于调透明度） */
+  --c-shadow: 58 92 70;
+
+  /* 安全区 */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --nav-space: calc(6.5rem + var(--safe-b));
+}
+
+:root[data-theme='beige'] {
+  color-scheme: light;
+
+  --c-bg: #e8e2d2;
+  --c-app: #f5f0e4;
+  --c-surface: #fffdf7;
+  --c-surface-soft: #efe8d8;
+
+  --c-ink: #3d3226;
+  --c-ink-soft: #6f6350;
+  --c-ink-faint: #8a7c68;
+  --c-ink-ghost: #9c8f7c;
+  --c-placeholder: #b5a892;
+
+  --c-line: #e5dcc8;
+  --c-line-soft: #eae2d1;
+  --c-border: #ded4bd;
+
+  --c-primary: #8a7256;
+  --c-primary-ink: #fffdf7;
+  --c-accent: #6b5638;
+  --c-soft: #ebe3d3;
+  --c-soft-ink: #6b5f4c;
+  --c-soft-hover: #ddd2bc;
+  --c-chip-ink: #8a7c68;
+  --c-tint: #ddd2bc;
+  --c-tint-ink: #5c5040;
+  --c-photo-well: #f0e9d8;
+  --c-toggle-on: #8a7256;
+
+  --c-star: #e5a23b;
+  --c-danger: #a05a3c;
+  --c-danger-bg: #f5e6dd;
+  --c-danger-solid: #b8562f;
+  --c-danger-solid-hover: #9d4726;
+
+  --c-poster-bg: #f0e9d6;
+  --c-poster-frame: #d9cba9;
+
+  --c-shadow: 92 76 52;
+}
+
+/* ==========================================================================
+   基础复位
+   ========================================================================== */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--c-bg);
+  color: var(--c-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* 防止 iOS 上整页橡皮筋把固定底栏带跑 */
+  overscroll-behavior-y: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+input[type='date'] {
+  color-scheme: light;
+}
+
+/* 悬浮按钮与底部导航都躲开 iOS 的安全区 */
+.floating-action {
+  bottom: calc(7rem + var(--safe-b));
+  right: calc(1.25rem + var(--safe-r));
+}
+
+/* 底栏：手机上相对视口固定（iOS 上滚动时不会被橡皮筋带走）；
+   桌面端应用被装在一个居中的手机壳里，fixed 会跑到壳外面，
+   所以改成相对手机壳定位。 */
+.tab-bar {
+  position: fixed;
+  bottom: calc(0.75rem + var(--safe-b));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 430px);
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+
+@media (min-width: 640px) {
+  .tab-bar {
+    position: absolute;
+    width: 100%;
+  }
+}
+
+/* 列表底部要留出「底栏 + 悬浮按钮」的高度，否则滚到底会被压住 */
+.list-bottom-space {
+  padding-bottom: var(--nav-space);
+}
+
+/* ==========================================================================
+   动效
+   ========================================================================== */
+
+/* ---- 主标签切换：柔和缩放 + 淡入 ---- */
+@keyframes page-zoom-fade {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.page-enter-zoom {
+  animation: page-zoom-fade 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ---- 页中页：按方向左右滑入 + 淡入 ---- */
+@keyframes page-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(80px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes page-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-80px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.page-enter-right {
+  animation: page-slide-right 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.page-enter-left {
+  animation: page-slide-left 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* 页中页浮层：从右推入，像翻开新一页 */
+.sheet-enter {
+  animation: page-slide-right 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-zoom,
+  .page-enter-right,
+  .page-enter-left,
+  .sheet-enter {
+    animation: none;
+  }
+}
