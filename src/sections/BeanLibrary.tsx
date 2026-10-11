@@ -183,7 +183,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
       </div>
 
       {/* 烘焙程度筛选 */}
-      <div className="px-6 mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="bl-roast-filter px-6 mt-3 flex gap-2 overflow-x-auto no-scrollbar">
         {(['全部', ...ROAST_LEVELS] as const).map((r) => (
           <button
             key={r}

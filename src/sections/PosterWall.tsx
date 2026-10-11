@@ -84,9 +84,6 @@ export function PosterWall({ beans, onBack }: PosterWallProps) {
         </div>
       </div>
 
-      <p className="px-8 mt-5 text-center text-[12.5px] leading-relaxed text-[var(--c-ink-faint)]">
-        分享的图片与此预览一致，请确认其中的日期、评分和笔记是否适合公开。
-      </p>
 
       {/* 操作 */}
       <div className="px-6 mt-5 flex gap-3">

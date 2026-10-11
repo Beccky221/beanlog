@@ -34,6 +34,8 @@ export function Profile({
   onUpdateGrinder,
   onRemoveGrinder,
 }: ProfileProps) {
+  const [themeOpen, setThemeOpen] = useState(false)
+  const activeTheme = THEMES.find(t => t.id === theme)!
   const scrollToTop = useScrollToTop()
   const [openList, setOpenList] = useState<ListKey | null>(null)
 
@@ -98,50 +100,30 @@ export function Profile({
         )}
       </div>
 
-      {/* 主题 */}
-      <div className="px-6 mt-6">
-        <p className="text-[12px] text-[var(--c-ink-faint)] mb-2 flex items-center gap-1.5">
-          <Palette size={13} /> 外观
-        </p>
-        <div className="bg-[var(--c-surface)] rounded-2xl p-3 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
-          <div className="grid grid-cols-2 gap-2">
-            {THEMES.map((t) => {
-              const active = t.id === theme
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => onChangeTheme(t.id)}
-                  aria-pressed={active}
-                  className={`rounded-xl px-3 py-3 text-left border transition-colors ${
-                    active
-                      ? 'border-[var(--c-primary)] bg-[var(--c-soft)]'
-                      : 'border-[var(--c-line)] bg-[var(--c-surface)]'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="w-4 h-4 rounded-full border border-[var(--c-border)]"
-                      style={{ background: t.id === 'green' ? '#4F8A67' : '#8A7256' }}
-                      aria-hidden
-                    />
-                    <span
-                      className={`text-[13.5px] ${
-                        active
-                          ? 'text-[var(--c-ink)] font-semibold'
-                          : 'text-[var(--c-ink-soft)]'
-                      }`}
-                    >
-                      {t.name}
-                    </span>
-                  </span>
-                  <span className="block text-[11px] text-[var(--c-ink-ghost)] mt-1">{t.hint}</span>
-                </button>
-              )
-            })}
+      <section className="bl-theme-section">
+        <button type="button" className="bl-theme-trigger" aria-expanded={themeOpen} aria-controls="bl-theme-options" onClick={() => setThemeOpen(!themeOpen)}>
+          <span className="bl-theme-icon" aria-hidden><Palette size={20} /></span>
+          <span className="bl-theme-heading"><span className="bl-theme-title">配色与纸感</span><span className="bl-theme-subtitle">给咖啡日常，换一种心情</span></span>
+          <span className="bl-theme-current"><i style={{background:activeTheme.colors.accent}} />{activeTheme.name}</span>
+          <span className="bl-theme-chevron" aria-hidden>{themeOpen ? '−' : '＋'}</span>
+        </button>
+        {themeOpen && <div id="bl-theme-options" className="bl-theme-options">
+          <p className="bl-theme-intro">取色于中国传统色，衬以细腻纸纹。</p>
+          <div className="bl-theme-grid" role="group" aria-label="选择 APP 配色">
+            {THEMES.map(t => <button key={t.id} type="button" className={'bl-theme-card' + (theme === t.id ? ' is-selected' : '')} aria-pressed={theme === t.id} aria-label={t.name + '，' + t.hint} onClick={() => onChangeTheme(t.id)}>
+              <span className="bl-theme-sample" style={{background:t.colors.paper}} aria-hidden>
+                <span className="bl-theme-sample-paper" style={{background:t.colors.surface}} />
+                <span className="bl-theme-sample-dot" style={{background:t.colors.accent}} />
+                <span className="bl-theme-sample-line" style={{background:t.colors.soft}} />
+                {theme === t.id && <span className="bl-theme-check" style={{background:t.colors.accent}}>✓</span>}
+              </span>
+              <span className="bl-theme-card-name">{t.name}</span>
+              <span className="bl-theme-card-desc">{t.hint.split(' · ')[0]}</span>
+            </button>)}
           </div>
-        </div>
-      </div>
+          <p className="bl-theme-note" role="status">当前：{activeTheme.name} · 已自动保存</p>
+        </div>}
+      </section>
 
       {/* 磨豆器管理 */}
       <GrinderManager

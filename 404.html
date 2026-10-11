@@ -10,22 +10,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="豆袋小记" />
-    <meta name="theme-color" content="#F0F6F0" />
+    <meta name="theme-color" content="#F2F0E4" />
     <!-- 用相对路径：部署在 GitHub Pages 子路径（/beanlog/）下也能找到 -->
     <link rel="apple-touch-icon" href="./icon.png" />
-    <link rel="icon" type="image/png" href="./icon.png" />
+    <link rel="icon" type="image/png" href="./assets/icon-BrBqItFr.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <script>
       // 首屏就把主题贴上，避免从默认主题闪一下再切换
       try {
         var t = localStorage.getItem('beanlog.theme.v1')
-        document.documentElement.dataset.theme = t === 'beige' ? 'beige' : 'green'
+        document.documentElement.dataset.theme = ['jade','blue','purple','pink','white','gray'].includes(t) ? t : 'jade'
       } catch (e) {
-        document.documentElement.dataset.theme = 'green'
+        document.documentElement.dataset.theme = 'jade'
       }
     </script>
-    <script type="module" crossorigin src="./assets/index-BsligZXS.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DxhcXDlu.css">
+    <script type="module" crossorigin src="./assets/index-CGREejJC.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DfTa6ymm.css">
   </head>
   <body>
     <div id="root"></div>

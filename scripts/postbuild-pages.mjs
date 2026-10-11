@@ -6,7 +6,7 @@
  *    （例如 /beanlog/a/b），相对路径会解析错，所以补一个 <base> 指回站点根。
  * 2. .nojekyll —— 别让 Pages 用 Jekyll 处理 assets 目录。
  */
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, writeFile, cp } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -17,7 +17,16 @@ const docs = path.join(root, 'docs')
 const PAGES_BASE = process.env.PAGES_BASE ?? '/beanlog/'
 const base = PAGES_BASE.endsWith('/') ? PAGES_BASE : `${PAGES_BASE}/`
 
-const html = await readFile(path.join(docs, 'index.html'), 'utf8')
+let html = await readFile(path.join(docs, 'index.html'), 'utf8')
+// Keep the manifest at the app root: its relative scope and icon paths must
+// resolve to /beanlog/, rather than /beanlog/assets/.
+html = html.replace(/(<link rel="manifest" href=")[^"]+(" \/>)/, '$1./manifest.webmanifest$2')
+html = html.replace(/(<link rel="apple-touch-icon" href=")[^"]+(" \/>)/, '$1./icon.png$2')
+await writeFile(path.join(docs, 'index.html'), html, 'utf8')
+const runtimeAssets = [...html.matchAll(/(?:src|href)="(\.\/assets\/[^" ]+\.(?:js|css))"/g)].map(m => m[1])
+let worker = await readFile(path.join(docs, 'sw.js'), 'utf8')
+worker = worker.replace(/const PRECACHE = \[[^\n]+\]/, 'const PRECACHE = ' + JSON.stringify(['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './icon.png', ...runtimeAssets]))
+await writeFile(path.join(docs, 'sw.js'), worker, 'utf8')
 const withBase = html.replace(
   '<meta charset="UTF-8" />',
   `<meta charset="UTF-8" />\n    <base href="${base}" />`,
@@ -32,3 +41,9 @@ if (!template.includes('src="/src/main.tsx"')) {
 }
 
 console.log(`已生成 docs/404.html（<base href="${base}">）与 docs/.nojekyll`)
+
+// Publish to both supported Pages sources and preserve a reusable source template.
+await writeFile(path.join(root, 'index.template.html'), template, 'utf8')
+for (const name of ['index.html','404.html','assets','icon.png','icon-192.png','icon-512.png','icon-maskable-512.png','manifest.webmanifest','sw.js','.nojekyll']) {
+  await cp(path.join(docs,name),path.join(root,name),{recursive:true,force:true})
+}

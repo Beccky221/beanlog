@@ -2,7 +2,7 @@
    - 页面导航：网络优先，离线时回退缓存
    - 静态资源（JS/CSS/图标）：缓存优先
    改动静态资源后记得把 CACHE 版本号 +1，否则老用户会继续用缓存的旧文件。 */
-const CACHE = 'beanlog-v7'
+const CACHE = 'beanlog-v8'
 const ENTRY = './index.html'
 /** 安装时预缓存，保证断网也能打开 */
 const PRECACHE = ['./', ENTRY, './manifest.webmanifest', './icon-192.png', './icon.png']
@@ -21,8 +21,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clientsClaim()),
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('beanlog-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   )
 })
 

@@ -8,11 +8,18 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
-  "background_color": "#F0F6F0",
-  "theme_color": "#F0F6F0",
-  "categories": ["food", "lifestyle", "utilities"],
+  "background_color": "#F2F0E4",
+  "theme_color": "#F2F0E4",
+  "categories": [
+    "food",
+    "lifestyle",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "./icon-192.png",
