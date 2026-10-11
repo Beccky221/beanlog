@@ -483,3 +483,14 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   -webkit-text-stroke: 0.2px currentColor;
 }
 .bl-journal-title-compact { font-size: 25px; letter-spacing: 0.02em; }
+
+/* 豆子身份卡使用平整的文字输入区，与标签保持一致。 */
+#root textarea.bl-identity-textarea {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+#root textarea.bl-identity-textarea::placeholder { color: var(--bl-muted); opacity: .7; }
+#root textarea.bl-identity-textarea:focus-visible { outline: 1px solid var(--bl-accent); outline-offset: 3px; }

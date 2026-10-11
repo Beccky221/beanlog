@@ -170,6 +170,9 @@ export async function restoreBackup(
     beans.push({
       id: asString(raw.id) || newPhotoId(),
       name: asString(raw.name, '未命名豆袋'),
+      brand: typeof raw.brand === 'string' ? raw.brand : undefined,
+      variety: typeof raw.variety === 'string' ? raw.variety : undefined,
+      flavor: typeof raw.flavor === 'string' ? raw.flavor : undefined,
       roastLevel: (raw.roastLevel as Bean['roastLevel']) ?? '中烘',
       status: (raw.status as Bean['status']) ?? '未开袋',
       rating: typeof raw.rating === 'number' ? raw.rating : 0,

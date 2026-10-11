@@ -80,7 +80,13 @@ export default function App() {
   }
 
   const saveDetail = (bean: Bean) => {
-    const finalBean = { ...bean, name: bean.name.trim() || '未命名豆袋' }
+    const finalBean = {
+      ...bean,
+      name: bean.name.trim() || '未命名豆袋',
+      brand: bean.brand?.trim() || undefined,
+      variety: bean.variety?.trim() || undefined,
+      flavor: bean.flavor?.trim() || undefined,
+    }
     store.setBeans((prev) =>
       isNew ? [finalBean, ...prev] : prev.map((b) => (b.id === finalBean.id ? finalBean : b)),
     )

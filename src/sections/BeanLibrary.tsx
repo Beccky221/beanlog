@@ -135,6 +135,9 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
       return (
         b.name.toLowerCase().includes(q) ||
         b.note.toLowerCase().includes(q) ||
+        (b.brand ?? '').toLowerCase().includes(q) ||
+        (b.variety ?? '').toLowerCase().includes(q) ||
+        (b.flavor ?? '').toLowerCase().includes(q) ||
         b.roastLevel.includes(q)
       )
     })
@@ -142,8 +145,11 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
 
   const grindText = (bean: Bean): string | null => {
     if (!bean.grindSetting) return null
-    const unit = grinders.find((g) => g.id === bean.grindGrinderId)?.unit ?? '格'
-    const name = bean.grindGrinderName ? ` · ${bean.grindGrinderName}` : ''
+    const grinder = grinders.find((g) => g.id === bean.grindGrinderId)
+    const unit = grinder?.unit ?? '格'
+    // 关联档案仍存在时显示当前名称；删除后才使用历史名称快照。
+    const grinderName = grinder?.name ?? bean.grindGrinderName
+    const name = grinderName ? ` · ${grinderName}` : ''
     return `研磨 ${bean.grindSetting} ${unit}${name}`
   }
 
@@ -176,7 +182,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜豆名、笔记或烘焙程度"
+            placeholder="搜豆名、品牌、品种、风味或笔记"
             className="bg-transparent outline-none text-[14px] w-full placeholder:text-[var(--c-placeholder)] text-[var(--c-ink)]"
           />
         </div>

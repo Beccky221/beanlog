@@ -88,6 +88,12 @@ export interface Bean {
   id: string
   /** 豆袋名称，如「分子咖啡-雪松可可」 */
   name: string
+  /** 品牌或烘焙商，可不填 */
+  brand?: string
+  /** 咖啡豆品种，如瑰夏、波旁、卡杜拉 */
+  variety?: string
+  /** 包装或品饮中的风味描述 */
+  flavor?: string
   roastLevel: RoastLevel
   status: DrinkStatus
   /** 0-5 星 */

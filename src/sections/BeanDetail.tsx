@@ -8,6 +8,7 @@ import { Toggle } from '@/components/Toggle'
 import { OptionRow } from '@/components/OptionRow'
 import { BrewCard } from '@/components/BrewCard'
 import { BeanThumb } from '@/components/BeanThumb'
+import { PhotoRecognition } from '@/components/PhotoRecognition'
 import { processPhotoFile } from '@/lib/image'
 
 interface BeanDetailProps {
@@ -29,6 +30,11 @@ function formatSetting(v: number): string {
 }
 
 const NO_GRIND = '不记录'
+const IDENTITY_FIELDS = [
+  { key: 'brand', label: '品牌', placeholder: '如：皮爷咖啡、分子咖啡' },
+  { key: 'variety', label: '豆子品种', placeholder: '如：瑰夏、波旁、卡杜拉' },
+  { key: 'flavor', label: '风味', placeholder: '如：柑橘、花香、巧克力' },
+] as const
 
 export function BeanDetail({
   bean,
@@ -244,10 +250,45 @@ export function BeanDetail({
         />
       </div>
 
+      {draft.photoId && (
+        <div className="px-5">
+          <PhotoRecognition
+            key={`${draft.photoId}/${draft.originalPhotoId ?? ''}`}
+            bean={draft}
+            onApply={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+          />
+        </div>
+      )}
+
       {/* 豆子身份卡 */}
       <div className="px-5 mt-6">
         <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">豆子身份卡</p>
         <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
+          {IDENTITY_FIELDS.map(({ key, label, placeholder }) => (
+            <label
+              key={key}
+              className="flex items-start gap-3 py-3.5 border-b border-[var(--c-soft)]"
+            >
+              <span className="shrink-0 w-[66px] pt-0.5 text-[15px] text-[var(--c-ink)]">{label}</span>
+              {key === 'flavor' ? (
+                <textarea
+                  value={draft[key] ?? ''}
+                  onChange={(e) => set(key, e.target.value)}
+                  placeholder={placeholder}
+                  rows={2}
+                  className="bl-identity-textarea flex-1 min-w-0 bg-transparent outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)] resize-y"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={draft[key] ?? ''}
+                  onChange={(e) => set(key, e.target.value)}
+                  placeholder={placeholder}
+                  className="flex-1 min-w-0 bg-transparent outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)]"
+                />
+              )}
+            </label>
+          ))}
           <OptionRow
             label="烘焙程度"
             value={draft.roastLevel}
