@@ -31,7 +31,7 @@ function formatBytes(n: number): string {
  */
 export function DataPanel({ store }: DataPanelProps) {
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null)
-  const [busy, setBusy] = useState<null | 'export' | 'import' | 'prune' | 'reset'>(null)
+  const [busy, setBusy] = useState<null | 'export' | 'import' | 'prune'>(null)
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -112,29 +112,16 @@ export function DataPanel({ store }: DataPanelProps) {
     }
   }
 
-  const handleReset = async () => {
-    if (!window.confirm('确定清空全部数据，恢复成示例豆库吗？此操作无法撤销，建议先导出备份。')) return
-    setBusy('reset')
-    setMessage(null)
-    try {
-      await store.resetToSamples()
-      refreshUsage()
-      setMessage({ kind: 'ok', text: '已恢复成示例豆库' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
   const rowClass =
-    'w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[var(--c-surface-soft)] transition-colors'
+    'bl-data-action w-full flex items-center gap-3 px-4 py-3.5 text-left rounded-xl bg-[var(--c-surface)]'
 
   return (
     <div className="px-6 mt-6">
       <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">数据管理</p>
 
-      <div className="bg-[var(--c-surface)] rounded-2xl border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)] overflow-hidden">
+      <div className="bg-[var(--c-surface)] rounded-2xl border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)] p-3 space-y-3">
         {/* 存储占用 */}
-        <div className="px-4 py-3.5 flex items-center gap-3 border-b border-[var(--c-soft)]">
+        <div className="px-1 py-1 flex items-center gap-3">
           <HardDrive size={16} className="text-[var(--c-ink-faint)] shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-[13.5px] text-[var(--c-ink)]">
@@ -163,7 +150,7 @@ export function DataPanel({ store }: DataPanelProps) {
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={busy !== null}
-          className={`${rowClass} border-t border-[var(--c-soft)]`}
+          className={rowClass}
         >
           <Upload size={16} className="text-[var(--c-primary)] shrink-0" />
           <span className="flex-1">
@@ -180,11 +167,12 @@ export function DataPanel({ store }: DataPanelProps) {
           type="button"
           onClick={handlePrune}
           disabled={busy !== null}
-          className={`${rowClass} border-t border-[var(--c-soft)]`}
+          className={rowClass}
         >
-          <RefreshCw size={16} className="text-[var(--c-ink-soft)] shrink-0" />
-          <span className="flex-1 text-[13.5px] text-[var(--c-ink)]">
-            {busy === 'prune' ? '正在清理…' : '清理无用的照片'}
+          <RefreshCw size={16} className="text-[var(--c-primary)] shrink-0" />
+          <span className="flex-1">
+            <span className="block text-[13.5px] text-[var(--c-ink)]">{busy === 'prune' ? '正在清理…' : '清理无用的照片'}</span>
+            <span className="block text-[11.5px] text-[var(--c-ink-ghost)] mt-0.5">释放未被记录使用的照片空间</span>
           </span>
         </button>
       </div>
@@ -217,15 +205,6 @@ export function DataPanel({ store }: DataPanelProps) {
         数据全部存在这台设备的浏览器里，不会上传到任何服务器。清理浏览器数据、换手机之前，
         记得先导出备份。
       </p>
-
-      <button
-        type="button"
-        onClick={handleReset}
-        disabled={busy !== null}
-        className="mt-3 text-[12px] text-[var(--c-danger)] active:opacity-70"
-      >
-        {busy === 'reset' ? '正在重置…' : '清空数据，恢复示例豆库'}
-      </button>
 
       <p className="text-[10.5px] text-[var(--c-placeholder)] mt-4">
         备份格式 {BACKUP_SCHEMA} v{BACKUP_VERSION}

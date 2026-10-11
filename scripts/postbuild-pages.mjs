@@ -22,6 +22,7 @@ let html = await readFile(path.join(docs, 'index.html'), 'utf8')
 // resolve to /beanlog/, rather than /beanlog/assets/.
 html = html.replace(/(<link rel="manifest" href=")[^"]+(" \/>)/, '$1./manifest.webmanifest$2')
 html = html.replace(/(<link rel="apple-touch-icon" href=")[^"]+(" \/>)/, '$1./icon.png$2')
+html = html.replace(/(<link rel="icon" type="image\/png" href=")[^"]+(" \/>)/, '$1./icon.png$2')
 await writeFile(path.join(docs, 'index.html'), html, 'utf8')
 const runtimeAssets = [...html.matchAll(/(?:src|href)="(\.\/assets\/[^" ]+\.(?:js|css))"/g)].map(m => m[1])
 let worker = await readFile(path.join(docs, 'sw.js'), 'utf8')

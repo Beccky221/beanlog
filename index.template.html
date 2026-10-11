@@ -22,10 +22,15 @@
       } catch (e) {
         document.documentElement.dataset.theme = 'jade'
       }
+      var launchColors = {jade:'#F2F0E4',blue:'#EDF3F6',purple:'#F2EDF5',pink:'#FAEFF0',white:'#F5F3ED',gray:'#EFF0EE'};
+      var launchColor = launchColors[document.documentElement.dataset.theme] || launchColors.jade;
+      document.documentElement.style.backgroundColor = launchColor;
+      document.querySelector('meta[name="theme-color"]').content = launchColor;
     </script>
+    <style>html,body,#root{min-height:100%;margin:0}body{background:inherit}.beanlog-first-frame{height:100dvh;display:flex;align-items:center;justify-content:center;background:inherit}.beanlog-first-frame img{background:transparent}</style>
     <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="beanlog-first-frame"><img src="./icon.png" width="120" height="120" alt="豆袋小记" /></div></div>
   </body>
 </html>

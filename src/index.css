@@ -432,3 +432,16 @@ body{background:var(--bl-outer);color:var(--bl-ink)}
 /* Give each filter and its relief shadow enough room inside the scroll area. */
 #root .bl-roast-filter{padding-top:12px;padding-bottom:14px;column-gap:12px;margin-top:4px;align-items:center;scroll-padding-inline:24px}
 #root .bl-roast-filter>button{flex-shrink:0}
+
+/* Data management: three separate buttons with consistent relief and spacing. */
+#root .bl-data-action {
+  min-height: 74px;
+  background: var(--bl-relief-face);
+  background-image: linear-gradient(135deg,#ffffff38,transparent 65%);
+  border: 1px solid #ffffff40;
+  box-shadow: 3px 3px 7px var(--bl-relief-shadow), -3px -3px 7px var(--bl-relief-light), inset 1px 1px 1px #ffffff70;
+}
+#root .bl-data-action:active:not(:disabled) { box-shadow: var(--bl-relief-pressed); transform: translateY(1px); }
+#root .bl-data-action:disabled { box-shadow: none; opacity: .6; }
+
+.beanlog-startup-logo { display:block; width:120px; height:120px; background-color:var(--c-primary); mask-repeat:no-repeat; -webkit-mask-repeat:no-repeat; mask-position:center; -webkit-mask-position:center; mask-size:contain; -webkit-mask-size:contain; }

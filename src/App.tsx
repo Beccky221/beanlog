@@ -3,6 +3,7 @@
    渲染时就定下来，避免闪一下），二是处理从主屏图标长按菜单进来的深链
    （?action=new / ?action=daily）。两处在写入前都做了判断，不会造成级联渲染。 */
 import { useEffect, useRef, useState } from 'react'
+import { logoUrl } from '@/lib/logo'
 import { LayoutGrid, Images, UserRound, CalendarDays, AlertTriangle, X } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { useStore } from '@/lib/store'
@@ -136,16 +137,9 @@ export default function App() {
 
   if (store.loading) {
     return (
-      <div className="h-dvh bg-[var(--c-bg)] flex items-center justify-center">
+      <div className="h-dvh bg-[var(--c-app)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-[var(--c-ink-faint)]">
-          <svg viewBox="0 0 120 160" className="w-16 h-auto animate-pulse" aria-hidden>
-            <rect x="18" y="10" width="84" height="18" rx="5" fill="var(--c-soft)" />
-            <path
-              d="M12 28 h96 v104 q0 12 -12 12 h-72 q-12 0 -12 -12 z"
-              fill="var(--c-soft)"
-            />
-            <rect x="34" y="56" width="52" height="56" rx="4" fill="var(--c-surface)" />
-          </svg>
+          <span className="beanlog-startup-logo" style={{ maskImage: `url("${logoUrl}")`, WebkitMaskImage: `url("${logoUrl}")` }} aria-hidden />
           <p className="text-[13px]">正在打开豆库…</p>
         </div>
       </div>

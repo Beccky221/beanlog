@@ -55,7 +55,7 @@ async function inlineStyle(html) {
 async function inlineIcon(html) {
   const png = await readFile(path.join(dist, 'icon.png'))
   const dataUrl = `data:image/png;base64,${png.toString('base64')}`
-  return html.replace(/href="\.?\/?icon\.png"/g, () => `href="${dataUrl}"`)
+  return html.replace(/(href|src)="\.?\/?icon\.png"/g, (_, attr) => `${attr}="${dataUrl}"`)
 }
 
 /** manifest 内联成 data URL，图标仍指向同目录的文件 */
