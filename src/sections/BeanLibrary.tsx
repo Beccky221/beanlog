@@ -255,9 +255,10 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
               </div>
               <div className="min-w-0 flex-1 py-0.5 text-left">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-[15px] font-semibold text-[var(--c-ink)] leading-snug break-all">
+                  <h3 className="min-w-0 flex-1 text-[15px] font-semibold text-[var(--c-ink)] leading-snug break-all">
                     {bean.name}
                   </h3>
+                  {bean.brand?.trim() && <span title={bean.brand.trim()} className="max-w-[40%] text-right text-[11.5px] leading-snug pt-0.5 font-normal text-[var(--c-ink-ghost)] break-words">{bean.brand.trim()}</span>}
                 </div>
                 <p className="text-[12px] text-[var(--c-ink-faint)] mt-1">
                   {[bean.origin?.trim(), bean.processingMethod?.trim(), bean.roastLevel].filter(Boolean).join(' · ')}

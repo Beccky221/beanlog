@@ -3,6 +3,7 @@ import workerSource from 'tesseract.js/dist/worker.min.js?raw'
 import coreSource from 'tesseract.js-core/tesseract-core-lstm.wasm.js?raw'
 import ocrLicenses from '@/assets/ocr-licenses.txt?raw'
 import { kvGet, kvSet } from '@/lib/idb'
+import { readableImage, type ImageCrop } from '@/lib/ocrImage'
 
 import { extractIdentity } from '@/lib/coffeeIdentity'
 export { extractIdentity } from '@/lib/coffeeIdentity'
@@ -25,27 +26,6 @@ self.addEventListener('message', function(event) {
 // 初始化失败或提前取消时，保证后台线程最终释放。
 setTimeout(function() { self.close(); }, 150000);
 `
-
-async function readableImage(blob: Blob): Promise<HTMLCanvasElement> {
-  const url = URL.createObjectURL(blob)
-  try {
-    const image = new Image()
-    image.src = url
-    await image.decode()
-    const scale = Math.min(1.5, 2200 / Math.max(image.naturalWidth, image.naturalHeight))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('当前浏览器无法处理这张照片，请换用 JPEG 或 PNG 图片。')
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-    return canvas
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-}
 
 /** 用局部亮度补偿拍摄阴影；保留原图识别结果，增强结果仅作为补读。 */
 function enhancePhoto(photo: HTMLCanvasElement): HTMLCanvasElement {
@@ -111,8 +91,8 @@ async function language(code: string, signal: AbortSignal, report: (text: string
 }
 
 /** 引擎与 worker 随 HTML 内嵌；只有首次获取语言包需要联网。图片不发送到任何服务。 */
-export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => void, signal: AbortSignal, enhance = false) {
-  const photo = await readableImage(blob)
+export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => void, signal: AbortSignal, enhance = false, crop?: ImageCrop) {
+  const photo = await readableImage(blob, crop)
   signal.throwIfAborted()
   const langs = []
   for (const code of ['chi_sim', 'eng']) langs.push(await language(code, signal, report))
@@ -122,7 +102,7 @@ export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => 
   const workerUrl = URL.createObjectURL(new Blob([`/*${ocrLicenses.replaceAll('*/', '* /')}*/\n`, workerBridge, '\n', coreSource, '\n', workerSource], { type: 'text/javascript' }))
   let rejectEngine: (error: Error) => void = () => undefined
   const engineError = new Promise<never>((_, reject) => { rejectEngine = reject })
-  const pending = createWorker(langs, OEM.LSTM_ONLY, {
+  const pending = createWorker(crop ? langs.filter(lang => lang.code === 'chi_sim') : langs, OEM.LSTM_ONLY, {
     workerPath: workerUrl,
     workerBlobURL: false,
     cacheMethod: 'none',
@@ -151,10 +131,11 @@ export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => 
       x: line.bbox.x0 / photo.width,
       y: line.bbox.y0 / photo.height,
       height: (line.bbox.y1 - line.bbox.y0) / photo.height,
+      width: (line.bbox.x1 - line.bbox.x0) / photo.width,
     }))))
     let text = data.text.trim()
     const initial = extractIdentity(text, lines)
-    if (!initial.variety || !initial.flavor) {
+    if (!initial.variety || !initial.flavor || !initial.milkFlavor || !initial.brand) {
       report('正在补读小字和品种信息…')
       // 不同字号在同一缩放比例下可能漏读，补一次较小比例，合并文字供候选匹配。
       const alternate = document.createElement('canvas')
@@ -173,12 +154,14 @@ export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => 
         }))))]
       }
     }
-    if (enhance) {
-      report('正在增强实拍照片并补读文字…')
+    if (enhance || crop || data.confidence < 70 || !extractIdentity(text, lines).milkFlavor || !extractIdentity(text, lines).brand) {
+      report('正在用中文模式补读标签小字…')
       // 先让界面更新，也让用户可以在额外处理之前取消。
       await new Promise(resolve => setTimeout(resolve, 0))
       signal.throwIfAborted()
-      const enhanced = enhancePhoto(photo)
+      await Promise.race([worker.reinitialize('chi_sim', OEM.LSTM_ONLY), interrupted, engineError])
+      await Promise.race([worker.setParameters({ tessedit_pageseg_mode: crop?.vertical ? PSM.SINGLE_LINE : crop ? PSM.SINGLE_BLOCK : PSM.SPARSE_TEXT, user_defined_dpi: '300' }), interrupted, engineError])
+      const enhanced = enhance ? enhancePhoto(photo) : photo
       signal.throwIfAborted()
       const extra = await Promise.race([worker.recognize(enhanced, {}, { text: true, blocks: true }), interrupted, engineError])
       signal.throwIfAborted()

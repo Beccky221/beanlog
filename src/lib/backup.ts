@@ -1,3 +1,4 @@
+import { normalizeRecommendationState } from '@/lib/recommendations'
 import type { AppData } from '@/lib/store'
 import type { Bean, DailyRecord } from '@/types/bean'
 import { beanPhotoIds } from '@/types/bean'
@@ -19,6 +20,7 @@ export interface BackupFile {
     beans: unknown[]
     grinders: unknown[]
     dailyRecords: unknown[]
+    recommendations?: unknown
     /** 照片单独存：照片 id → dataURL。v2 起才有 */
     photos?: Record<string, string>
   }
@@ -76,6 +78,7 @@ export async function buildBackup(data: AppData): Promise<BackupFile> {
       beans: data.beans,
       grinders: data.grinders,
       dailyRecords: data.dailyRecords,
+      recommendations: data.recommendations,
       photos: photoMap,
     },
   }
@@ -234,7 +237,7 @@ export async function restoreBackup(
   const grinders = asArray(backup.data.grinders) as AppData['grinders']
 
   return {
-    data: { beans, grinders, dailyRecords },
+    data: { beans, grinders, dailyRecords, recommendations: normalizeRecommendationState((backup.data as unknown as Record<string, unknown>).recommendations) },
     photos: written.size,
     upgradedFromV1,
   }

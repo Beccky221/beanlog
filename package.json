@@ -14,7 +14,8 @@
     "e2e": "node scripts/e2e-shots.mjs",
     "test:backup": "node scripts/test-backup-roundtrip.mjs",
     "test:v1": "node scripts/test-v1-import.mjs",
-    "test": "npm run typecheck && npm run lint && npm run test:backup && npm run test:v1"
+    "test": "npm run typecheck && npm run lint && npm run test:backup && npm run test:v1",
+    "recommend:server": "node server/recommend.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",

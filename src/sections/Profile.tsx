@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Coffee, Heart, Bookmark, ChevronRight, Palette } from 'lucide-react'
+import { Coffee, Heart, Bookmark, ChevronRight, Palette, Sparkles } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
 import type { Store } from '@/lib/store'
 import { THEMES, type ThemeName } from '@/lib/theme'
+import { CoffeeRecommendations } from '@/sections/CoffeeRecommendations'
 import { GrinderManager } from '@/sections/GrinderManager'
 import { Repurchase, type ListKey } from '@/sections/Repurchase'
 import { DataPanel } from '@/components/DataPanel'
+import { VisionSettings } from '@/components/VisionSettings'
 import { useScrollToTop } from '@/lib/useScrollToTop'
 
 interface ProfileProps {
@@ -34,6 +36,7 @@ export function Profile({
   onUpdateGrinder,
   onRemoveGrinder,
 }: ProfileProps) {
+  const [recommendationsOpen, setRecommendationsOpen] = useState(false)
   const [themeOpen, setThemeOpen] = useState(false)
   const activeTheme = THEMES.find(t => t.id === theme)!
   const scrollToTop = useScrollToTop()
@@ -100,6 +103,13 @@ export function Profile({
         )}
       </div>
 
+      <div className="px-6 mt-5">
+        <button type="button" onClick={() => setRecommendationsOpen(true)} className="w-full rounded-2xl bg-[var(--c-surface)] border border-[var(--c-line)] p-4 flex items-center gap-3 text-left">
+          <span className="rounded-full p-3 text-[var(--c-accent)]"><Sparkles size={21} /></span>
+          <span className="min-w-0 flex-1"><span className="block text-[16px] text-[var(--c-ink)]">找一袋喜欢的豆</span><span className="block mt-1 text-[12px] text-[var(--c-ink-faint)]">咖啡偏好 · 商品豆与烘焙商</span></span>
+          <ChevronRight size={17} className="text-[var(--c-ink-faint)]" />
+        </button>
+      </div>
       <section className="bl-theme-section">
         <button type="button" className="bl-theme-trigger" aria-expanded={themeOpen} aria-controls="bl-theme-options" onClick={() => setThemeOpen(!themeOpen)}>
           <span className="bl-theme-icon" aria-hidden><Palette size={20} /></span>
@@ -133,6 +143,7 @@ export function Profile({
         onRemove={onRemoveGrinder}
       />
 
+      <VisionSettings />
       <DataPanel store={store} />
 
       {/* 关于 */}
@@ -150,6 +161,9 @@ export function Profile({
         </div>
       </div>
 
+      {recommendationsOpen && <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter">
+        <CoffeeRecommendations beans={beans} value={store.data.recommendations} onChange={store.setRecommendations} onBack={() => setRecommendationsOpen(false)} />
+      </div>}
       {/* 清单页中页：值得回购 / 准备买 */}
       {openList && (
         <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter">

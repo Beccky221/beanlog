@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Bean, DailyRecord } from '@/types/bean'
 import { beanPhotoIds } from '@/types/bean'
+import type { RecommendationState } from '@/types/recommendation'
+import { normalizeRecommendationState } from '@/lib/recommendations'
 import type { Grinder } from '@/types/grinder'
 import {
   clearPhotos,
@@ -25,6 +27,7 @@ const LEGACY = {
 } as const
 
 export interface AppData {
+  recommendations?: RecommendationState
   beans: Bean[]
   grinders: Grinder[]
   dailyRecords: DailyRecord[]
@@ -169,6 +172,7 @@ async function pruneOrphanPhotos(data: AppData): Promise<number> {
 /* ============================== 主 store ============================== */
 
 export interface Store {
+  setRecommendations: (state: RecommendationState) => void
   data: AppData
   loading: boolean
   /** 上次保存失败（多半是空间满了）的提示 */
@@ -236,6 +240,7 @@ export function useStore(): Store {
           beans: loaded.beans ?? [],
           grinders: loaded.grinders?.length ? loaded.grinders : defaultGrinders(),
           dailyRecords: loaded.dailyRecords ?? [],
+          recommendations: normalizeRecommendationState(loaded.recommendations),
         })
         // 顺手清一次孤儿照片（比如上次删豆子时留下的）
         void pruneOrphanPhotos(loaded).catch(() => {})
@@ -399,7 +404,8 @@ export function useStore(): Store {
       dismissWarning: () => setWarning(null),
       setBeans: (updater) => update((prev) => ({ ...prev, beans: updater(prev.beans) })),
       setGrinders: (updater) => update((prev) => ({ ...prev, grinders: updater(prev.grinders) })),
-      setDailyRecords: (updater) =>
+      setRecommendations: (state: RecommendationState) => update(prev => ({ ...prev, recommendations: normalizeRecommendationState(state) })),
+    setDailyRecords: (updater) =>
         update((prev) => ({ ...prev, dailyRecords: updater(prev.dailyRecords) })),
       savePhoto,
       dropPhotos,
