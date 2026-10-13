@@ -173,6 +173,9 @@ export async function restoreBackup(
       brand: typeof raw.brand === 'string' ? raw.brand : undefined,
       variety: typeof raw.variety === 'string' ? raw.variety : undefined,
       flavor: typeof raw.flavor === 'string' ? raw.flavor : undefined,
+      milkFlavor: typeof raw.milkFlavor === 'string' ? raw.milkFlavor : undefined,
+      processingMethod: typeof raw.processingMethod === 'string' ? raw.processingMethod : undefined,
+      origin: typeof raw.origin === 'string' ? raw.origin : undefined,
       roastLevel: (raw.roastLevel as Bean['roastLevel']) ?? '中烘',
       status: (raw.status as Bean['status']) ?? '未开袋',
       rating: typeof raw.rating === 'number' ? raw.rating : 0,
@@ -209,7 +212,16 @@ export async function restoreBackup(
         if (id) photoIds.push(id)
       }
     }
+    const point = (raw.location ?? {}) as Record<string, unknown>
+    const location = typeof point.latitude === 'number' && Number.isFinite(point.latitude) && Math.abs(point.latitude) <= 90 &&
+      typeof point.longitude === 'number' && Number.isFinite(point.longitude) && Math.abs(point.longitude) <= 180
+      ? { latitude: point.latitude, longitude: point.longitude,
+          accuracy: typeof point.accuracy === 'number' && Number.isFinite(point.accuracy) && point.accuracy >= 0 ? point.accuracy : undefined }
+      : undefined
     dailyRecords.push({
+      source: raw.source === 'outside' ? 'outside' : 'home',
+      locationName: typeof raw.locationName === 'string' ? raw.locationName : undefined,
+      location,
       id: asString(raw.id) || newPhotoId(),
       date: asString(raw.date) || new Date().toISOString().slice(0, 10),
       photoIds,

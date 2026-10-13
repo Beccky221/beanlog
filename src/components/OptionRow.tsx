@@ -29,11 +29,11 @@ export function OptionRow({ label, value, options, onChange }: OptionRowProps) {
       </button>
       <div
         className={`grid transition-all duration-200 ${
-          open ? 'grid-rows-[1fr] pb-3 opacity-100' : 'grid-rows-[0fr] opacity-0'
+          open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }`}
       >
-        <div className="overflow-hidden">
-          <div className="flex flex-wrap gap-2">
+        <div className="min-h-0 overflow-hidden -mx-3">
+          <div className="flex flex-wrap gap-2 px-3 pt-2 pb-5">
             {options.map((opt) => (
               <button
                 key={opt}

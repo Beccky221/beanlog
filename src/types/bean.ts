@@ -61,6 +61,10 @@ export const BREW_METHODS: BrewMethod[] = [
 
 /** 一条每日记录：某天喝这袋豆子留下的照片、冲煮参数和札记（一天可多条） */
 export interface DailyRecord {
+  /** 旧记录未指定时视为自己做 */
+  source?: 'home' | 'outside'
+  locationName?: string
+  location?: { latitude: number; longitude: number; accuracy?: number }
   id: string
   /** 日期 YYYY-MM-DD */
   date: string
@@ -92,8 +96,14 @@ export interface Bean {
   brand?: string
   /** 咖啡豆品种，如瑰夏、波旁、卡杜拉 */
   variety?: string
-  /** 包装或品饮中的风味描述 */
+  /** 黑咖风味；兼容原有风味记录 */
   flavor?: string
+  /** 加奶后的风味描述 */
+  milkFlavor?: string
+  /** 咖啡豆处理法 */
+  processingMethod?: string
+  /** 国家、产区或庄园 */
+  origin?: string
   roastLevel: RoastLevel
   status: DrinkStatus
   /** 0-5 星 */

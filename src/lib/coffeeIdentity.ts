@@ -4,6 +4,9 @@ export interface ExtractedIdentity {
   brand: string
   variety: string
   flavor: string
+  milkFlavor: string
+  processingMethod: string
+  origin: string
   roastLevel: RoastLevel | ''
 }
 export interface OcrLine {
@@ -102,7 +105,7 @@ const MARKETING = /风味参考|春季限定|季节限定|新品|限量|咖啡�
 export function extractIdentity(raw: string, layout: OcrLine[] = []): ExtractedIdentity {
   const text = normalize(raw)
   const lines = text.split(/\r?\n/).map(normalize).filter(Boolean)
-  const boundary = /(?:品牌|烘焙商|豆种|品种|风味|产地|产区|处理方式|烘焙程度|烘焙度|净含量|生产日期|保质期)\s*[:：]/i
+  const boundary = /(?:品牌|烘焙商|豆种|品种|黑咖风味|奶咖风味|风味|产地|产区|处理方式|处理法|加工方式|烘焙程度|烘焙度|净含量|生产日期|保质期)\s*[:：]/i
   const read = (label: string) => {
     const matcher = new RegExp(`^(?:${label})\\s*[:：|｜-]?\\s*(.*)$`, 'i')
     for (let i = 0; i < lines.length; i++) {
@@ -115,7 +118,24 @@ export function extractIdentity(raw: string, layout: OcrLine[] = []): ExtractedI
   }
   let brand = read('品牌|烘焙商|brand\\b|roaster\\b')
   let variety = read('豆子品种|咖啡品种|品种|豆种|variety\\b|varietal\\b')
-  let flavor = read('风味描述|风味调性|风味参考|风味|flavou?r(?:\\s+notes?)?\\b|tasting\\s+notes?\\b')
+  let flavor = read('黑咖风味|黑咖|风味描述|风味调性|风味参考|风味|flavou?r(?:\\s+notes?)?\\b|tasting\\s+notes?\\b')
+
+  const milkFlavor = read('奶咖风味|奶咖|加奶风味|milk(?:\\s+coffee)?\\s+notes?\\b')
+
+  const origin = read('产地信息|产地|产区|国家|origin\\b|region\\b')
+  let processingMethod = read('处理方式|处理法|加工方式|process(?:ing)?(?:\\s+method)?\\b')
+  if (!processingMethod) {
+    const methods = [
+      { name: '厌氧日晒', pattern: /厌氧日晒|anaerobic\s+natural/i },
+      { name: '厌氧水洗', pattern: /厌氧水洗|anaerobic\s+washed/i },
+      { name: '水洗', pattern: /水洗|\bwashed\b/i },
+      { name: '日晒', pattern: /日晒|\bnatural\s+process/i },
+      { name: '蜜处理', pattern: /蜜处理|\bhoney\s+process/i },
+      { name: '湿刨', pattern: /湿刨|\bwet[-\s]+hulled\b/i },
+    ]
+    const found = methods.filter(method => method.pattern.test(text))
+    processingMethod = found.filter(method => !found.some(other => other.name !== method.name && other.name.includes(method.name))).map(method => method.name).join('、')
+  }
 
   if (!variety) {
     const found = VARIETIES.filter(item => item.pattern.test(text))
@@ -180,5 +200,5 @@ export function extractIdentity(raw: string, layout: OcrLine[] = []): ExtractedI
     const nearTop = candidates.filter(line => line.y <= top + .025).sort((a, b) => Number(b.candidate.known) - Number(a.candidate.known) || a.y - b.y || a.x - b.x)
     if (nearTop[0]) brand = nearTop[0].candidate.name
   }
-  return { brand, variety, flavor, roastLevel }
+  return { brand, variety, flavor, milkFlavor, processingMethod, origin, roastLevel }
 }

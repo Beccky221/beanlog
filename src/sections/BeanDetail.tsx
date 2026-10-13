@@ -31,9 +31,11 @@ function formatSetting(v: number): string {
 
 const NO_GRIND = '不记录'
 const IDENTITY_FIELDS = [
+  { key: 'name', label: '豆子名称', placeholder: '填写这袋豆子的名称' },
   { key: 'brand', label: '品牌', placeholder: '如：皮爷咖啡、分子咖啡' },
   { key: 'variety', label: '豆子品种', placeholder: '如：瑰夏、波旁、卡杜拉' },
-  { key: 'flavor', label: '风味', placeholder: '如：柑橘、花香、巧克力' },
+  { key: 'processingMethod', label: '处理法', placeholder: '如：水洗、日晒、蜜处理' },
+  { key: 'origin', label: '产区', placeholder: '如：埃塞俄比亚 · 耶加雪菲' },
 ] as const
 
 export function BeanDetail({
@@ -76,7 +78,7 @@ export function BeanDetail({
     setDraft((d) => ({ ...d, [key]: value }))
 
   const handlePhoto = async (file: File | undefined) => {
-    if (!file || photoBusy) return
+    if (!file || photoBusy) return false
     setPhotoBusy(true)
     try {
       const processed = await processPhotoFile(file)
@@ -87,9 +89,11 @@ export function BeanDetail({
       const reusable = previous.filter((p): p is string => !!p && !tempPhotos.current.includes(p))
       if (reusable.length) onDropPhotos(reusable)
       tempPhotos.current.push(id, ...(originalId ? [originalId] : []))
+      return true
     } catch (err) {
       window.alert('照片保存失败，可能是本地空间不够了。可以先去「我的 → 数据管理」导出备份。')
       console.error(err)
+      return false
     } finally {
       setPhotoBusy(false)
     }
@@ -179,6 +183,7 @@ export function BeanDetail({
         <button
           type="button"
           onClick={handleSave}
+          disabled={photoBusy}
           className="px-4 h-10 rounded-full bg-white shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.1)] text-[14px] font-medium text-[var(--c-ink)] active:scale-95 transition-transform"
         >
           保存
@@ -221,10 +226,7 @@ export function BeanDetail({
         {photoBusy && (
           <p className="text-[12px] text-[var(--c-ink-faint)] mt-2 text-center">正在处理照片…</p>
         )}
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-[11.5px] text-[var(--c-ink-ghost)]">
-            {draft.photoId ? '照片存在本机，导出备份时会一起带走' : '没有照片也可以，会用占位豆袋图'}
-          </p>
+        <div className="flex items-center justify-end mt-2">
           {draft.photoId && (
             <button
               type="button"
@@ -250,15 +252,13 @@ export function BeanDetail({
         />
       </div>
 
-      {draft.photoId && (
-        <div className="px-5">
-          <PhotoRecognition
-            key={`${draft.photoId}/${draft.originalPhotoId ?? ''}`}
-            bean={draft}
-            onApply={(patch) => setDraft((current) => ({ ...current, ...patch }))}
-          />
-        </div>
-      )}
+      <div className="px-5">
+        <PhotoRecognition
+          bean={draft}
+          onUsePhoto={handlePhoto}
+          onApply={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+        />
+      </div>
 
       {/* 豆子身份卡 */}
       <div className="px-5 mt-6">
@@ -270,25 +270,28 @@ export function BeanDetail({
               className="flex items-start gap-3 py-3.5 border-b border-[var(--c-soft)]"
             >
               <span className="shrink-0 w-[66px] pt-0.5 text-[15px] text-[var(--c-ink)]">{label}</span>
-              {key === 'flavor' ? (
-                <textarea
-                  value={draft[key] ?? ''}
-                  onChange={(e) => set(key, e.target.value)}
-                  placeholder={placeholder}
-                  rows={2}
-                  className="bl-identity-textarea flex-1 min-w-0 bg-transparent outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)] resize-y"
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={draft[key] ?? ''}
-                  onChange={(e) => set(key, e.target.value)}
-                  placeholder={placeholder}
-                  className="flex-1 min-w-0 bg-transparent outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)]"
-                />
-              )}
+              <input
+                type="text"
+                value={draft[key] ?? ''}
+                onChange={(e) => set(key, e.target.value)}
+                placeholder={placeholder}
+                className="flex-1 min-w-0 bg-transparent outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)]"
+              />
             </label>
           ))}
+          <div className="py-3.5 border-b border-[var(--c-soft)]">
+            <p className="text-[15px] text-[var(--c-ink)]">风味</p>
+            <div className="mt-3 space-y-3">
+              {([
+                { key: 'flavor', label: '黑咖风味', placeholder: '如：柑橘、花香、巧克力' },
+                { key: 'milkFlavor', label: '奶咖风味', placeholder: '如：奶油、焦糖、曲奇饼干' },
+              ] as const).map(({ key, label, placeholder }) => <label key={key} className="block">
+                <span className="text-[12px] text-[var(--c-ink-faint)]">{label}</span>
+                <textarea value={draft[key] ?? ''} onChange={e => set(key, e.target.value)} placeholder={placeholder} rows={2}
+                  className="bl-identity-textarea mt-1.5 block w-full rounded-xl px-3 py-2 bg-[var(--c-surface-soft)] outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)] resize-y" />
+              </label>)}
+            </div>
+          </div>
           <OptionRow
             label="烘焙程度"
             value={draft.roastLevel}

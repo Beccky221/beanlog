@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, ImagePlus, PenLine, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, ImagePlus, MapPin, PenLine, Plus, Trash2, X } from 'lucide-react'
 import { BREW_METHODS, type DailyRecord } from '@/types/bean'
 import { processPhotoFile } from '@/lib/image'
 import { usePhotoUrls } from '@/lib/usePhoto'
+import { nearbyCafes, type NearbyCafe } from '@/lib/nearbyCafes'
 
 interface DailyRecordsProps {
   records: DailyRecord[] | undefined
@@ -31,12 +32,13 @@ function newId(): string {
 
 function emptyRecord(date: string): DailyRecord {
   // 默认选中第一种冲煮方式，与编辑器里默认高亮的 pill 保持一致
-  return { id: newId(), date, photoIds: [], method: BREW_METHODS[0].id, values: {} }
+  return { id: newId(), date, photoIds: [], source: 'home', method: BREW_METHODS[0].id, values: {} }
 }
 
 function hasContent(r: DailyRecord): boolean {
   return (
     r.photoIds.length > 0 ||
+    r.source === 'outside' ||
     Object.values(r.values).some((v) => (v ?? '').trim() !== '') ||
     (r.note ?? '').trim() !== ''
   )
@@ -243,7 +245,7 @@ export function DailyRecords({
 
 /** 记录里的冲煮参数摘要行 */
 function RecordParams({ record }: { record: DailyRecord }) {
-  const method = BREW_METHODS.find((m) => m.id === record.method)
+  const method = record.source === 'outside' ? undefined : BREW_METHODS.find((m) => m.id === record.method)
   const parts = method
     ? method.fields
         .map((f) => {
@@ -253,9 +255,13 @@ function RecordParams({ record }: { record: DailyRecord }) {
         .filter(Boolean)
     : []
   const note = record.note?.trim()
-  if (!method && parts.length === 0 && !note) return null
   return (
     <div className="mt-2">
+      <p className="text-[12.5px] text-[var(--c-ink-soft)]">{record.source === 'outside' ? '外面买' : '自己做'}</p>
+      {record.source === 'outside' && (record.locationName?.trim() || record.location) && <p className="mt-1 text-[12px] text-[var(--c-ink-faint)] flex items-start gap-1">
+        <MapPin size={13} className="shrink-0 mt-0.5" />
+        {record.locationName?.trim() || (record.location && `${record.location.latitude.toFixed(5)}, ${record.location.longitude.toFixed(5)}`)}
+      </p>}
       {(method || parts.length > 0) && (
         <p className="text-[12.5px] text-[var(--c-ink-soft)] leading-relaxed">
           {method ? `${method.name} · ` : ''}
@@ -328,7 +334,7 @@ function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }
   }
 
   const save = () => {
-    const kept = entries.filter(hasContent).map((e) => ({ ...e, date }))
+    const kept = entries.filter(hasContent).map((e) => ({ ...e, date, ...(e.source === 'outside' ? { method: undefined, values: {} } : {}) }))
     pruneTempPhotos(kept)
     onSave(kept)
   }
@@ -387,7 +393,7 @@ function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }
           <Plus size={15} /> 再加一条记录
         </button>
         <p className="text-[12px] text-[var(--c-ink-ghost)] mt-3">
-          照片、参数、札记都不填的模块保存时会自动略去。
+          未添加照片、参数或札记的“自己做”记录，保存时会自动略去。
         </p>
       </div>
     </div>
@@ -528,6 +534,8 @@ function EntryModule({
       {/* 冲煮参数 */}
       <div className="px-5 mt-3">
         <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
+          <DrinkContext entry={entry} onPatch={onPatch} />
+          {entry.source !== 'outside' && <>
           <div className="flex gap-2 py-3.5 border-b border-[var(--c-soft)] overflow-x-auto">
             {BREW_METHODS.map((m) => {
               const active = m.id === method.id
@@ -564,7 +572,8 @@ function EntryModule({
               </label>
             ))}
           </div>
-          <div className="pb-3.5">
+          </>}
+          <div className="py-3.5">
             <input
               value={entry.note ?? ''}
               placeholder="札记：今天这杯怎么样？"
@@ -577,4 +586,111 @@ function EntryModule({
       </div>
     </div>
   )
+}
+
+/** 每杯独立记录来源与地点；定位仅由用户点击触发。 */
+function DrinkContext({ entry, onPatch }: { entry: DailyRecord; onPatch: (patch: Partial<DailyRecord>) => void }) {
+  const [locating, setLocating] = useState(false)
+  const [message, setMessage] = useState('')
+  const request = useRef(0)
+  const searchController = useRef<AbortController | null>(null)
+  const [cafes, setCafes] = useState<NearbyCafe[]>([])
+  const [searching, setSearching] = useState(false)
+  const [cafeQuery, setCafeQuery] = useState('')
+  useEffect(() => () => { request.current++; searchController.current?.abort() }, [])
+  const clearSearch = () => {
+    searchController.current?.abort()
+    setSearching(false)
+    setCafes([])
+    setCafeQuery('')
+  }
+  const searchCafes = async (latitude: number, longitude: number, token: number) => {
+    searchController.current?.abort()
+    const controller = new AbortController()
+    searchController.current = controller
+    setSearching(true)
+    setCafes([])
+    setCafeQuery('')
+    setMessage('正在搜索附近 1.5 公里内的咖啡馆…')
+    const timer = setTimeout(() => controller.abort(), 25000)
+    try {
+      const results = await nearbyCafes(latitude, longitude, controller.signal)
+      if (token !== request.current || controller.signal.aborted) return
+      setCafes(results)
+      setMessage(results.length ? '点选咖啡馆，店名会自动填入上方地点。' : '地图中未找到附近咖啡馆，可手动填写店名。')
+    } catch (error) {
+      if (token !== request.current) return
+      setMessage(controller.signal.aborted ? '附近店铺搜索超时，请重试或手动填写店名。' : error instanceof Error ? error.message : '附近店铺搜索失败，请手动填写店名。')
+    } finally {
+      clearTimeout(timer)
+      if (token === request.current) setSearching(false)
+    }
+  }
+  const locate = () => {
+    if (!navigator.geolocation) { setMessage('当前浏览器不支持定位，请手动填写地点。'); return }
+    const token = ++request.current
+    clearSearch()
+    setLocating(true)
+    setMessage('')
+    navigator.geolocation.getCurrentPosition(position => {
+      if (token !== request.current) return
+      const { latitude, longitude, accuracy } = position.coords
+      onPatch({ location: { latitude, longitude, accuracy } })
+      setLocating(false)
+      void searchCafes(latitude, longitude, token)
+    }, error => {
+      if (token !== request.current) return
+      setLocating(false)
+      setMessage(error.code === 1 ? '未获得定位权限，请允许浏览器定位，或手动填写地点。' : '暂时无法获取位置，请重试或手动填写地点。')
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 })
+  }
+  return <div className="py-3.5 border-b border-[var(--c-soft)]">
+    <p className="text-[12px] text-[var(--c-ink-faint)] mb-3">这杯咖啡从哪里来</p>
+    <div className="flex gap-3 pb-2">
+      {(['home', 'outside'] as const).map(source => <button key={source} type="button" aria-pressed={(entry.source ?? 'home') === source}
+        onClick={() => {
+          request.current++
+          clearSearch()
+          setLocating(false)
+          setMessage('')
+          onPatch({ source })
+        }}
+        className={`px-4 py-2 rounded-full text-[13px] ${(entry.source ?? 'home') === source ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'bg-[var(--c-soft)] text-[var(--c-soft-ink)]'}`}>
+        {source === 'home' ? '自己做' : '外面买'}
+      </button>)}
+    </div>
+    {entry.source === 'outside' && <>
+    <label className="block mt-3 text-[12px] text-[var(--c-ink-faint)]">地点
+      <input value={entry.locationName ?? ''} onChange={e => onPatch({ locationName: e.target.value })}
+        placeholder="咖啡店名称或地址"
+        className="mt-1.5 w-full rounded-xl px-3 py-2 bg-[var(--c-surface-soft)] outline-none text-[14px] text-[var(--c-ink)]" />
+    </label>
+    <div className="flex items-center gap-3 mt-3">
+      <button type="button" disabled={locating} onClick={locate} className="px-3 py-2 rounded-full flex items-center gap-1.5 text-[12px] text-[var(--c-accent)] disabled:opacity-50"><MapPin size={14} />{locating ? '正在定位…' : '获取当前位置'}</button>
+      {entry.location && <button type="button" onClick={() => { request.current++; clearSearch(); setLocating(false); setMessage(''); onPatch({ location: undefined }) }} className="px-3 py-2 rounded-full text-[12px] text-[var(--c-danger)]">移除定位</button>}
+    </div>
+    {entry.location && <button type="button" disabled={locating || searching} onClick={() => {
+      const token = ++request.current
+      void searchCafes(entry.location!.latitude, entry.location!.longitude, token)
+    }} className="mt-2 px-3 py-2 rounded-full text-[12px] text-[var(--c-accent)] disabled:opacity-50">{searching ? '正在搜索附近咖啡馆…' : '搜索附近咖啡馆'}</button>}
+    {cafes.length > 0 && <div className="mt-3 rounded-xl border border-[var(--c-line)] p-3">
+      <p className="text-[13px] text-[var(--c-ink)]">附近咖啡馆 · 按距离排序</p>
+      <input aria-label="筛选附近咖啡馆" value={cafeQuery} onChange={e => setCafeQuery(e.target.value)} placeholder="搜索候选店名"
+        className="mt-2 w-full rounded-lg px-3 py-2 bg-[var(--c-surface-soft)] outline-none text-[13px] text-[var(--c-ink)]" />
+      <div className="mt-2 max-h-56 overflow-y-auto space-y-2">
+        {cafes.filter(cafe => `${cafe.name} ${cafe.address}`.toLowerCase().includes(cafeQuery.trim().toLowerCase())).map(cafe => <button key={cafe.id} type="button"
+          aria-pressed={entry.locationName === cafe.name}
+          onClick={() => { onPatch({ locationName: cafe.name }); setMessage(`已填入：${cafe.name}`) }}
+          className="w-full p-3 rounded-xl text-left text-[var(--c-ink)]">
+          <span className="flex justify-between gap-2 text-[13px]"><span>{cafe.name}</span><span className="shrink-0 text-[11px] text-[var(--c-ink-faint)]">{cafe.distance < 1000 ? `${cafe.distance} 米` : `${(cafe.distance / 1000).toFixed(1)} 公里`}{entry.locationName === cafe.name ? ' ✓' : ''}</span></span>
+          {cafe.address && <span className="block mt-1 text-[11.5px] text-[var(--c-ink-faint)]">{cafe.address}</span>}
+        </button>)}
+        {!cafes.some(cafe => `${cafe.name} ${cafe.address}`.toLowerCase().includes(cafeQuery.trim().toLowerCase())) && <p className="text-[12px] text-[var(--c-ink-faint)] py-2">候选中没有匹配店铺，可在上方手动填写。</p>}
+      </div>
+    </div>}
+    <p className="mt-2 text-[10.5px] text-[var(--c-ink-faint)]">搜索需联网，定位坐标会发送给地图服务。店铺数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">OpenStreetMap</a>，可能不完整。</p>
+    {entry.location && <p className="mt-2 text-[11.5px] text-[var(--c-ink-faint)] break-words">{entry.location.latitude.toFixed(5)}, {entry.location.longitude.toFixed(5)}{entry.location.accuracy !== undefined ? ` · 精度约 ${Math.round(entry.location.accuracy)} 米` : ''}</p>}
+    {message && <p role="status" className="mt-2 text-[11.5px] text-[var(--c-ink-faint)]">{message}</p>}
+    </>}
+  </div>
 }

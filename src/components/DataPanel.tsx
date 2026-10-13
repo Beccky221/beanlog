@@ -202,7 +202,7 @@ export function DataPanel({ store }: DataPanelProps) {
       )}
 
       <p className="text-[11.5px] text-[var(--c-ink-ghost)] mt-3 leading-relaxed">
-        数据全部存在这台设备的浏览器里，不会上传到任何服务器。清理浏览器数据、换手机之前，
+        记录和照片保存在这台设备的浏览器里。搜索附近咖啡馆时，会向地图服务发送定位坐标。清理浏览器数据、换手机之前，
         记得先导出备份。
       </p>
 

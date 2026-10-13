@@ -3,7 +3,7 @@
    海报渲染结果），setState 都带了相同性判断，不会引起级联渲染。 */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Heart, Bookmark, Plus, Search, Trash2 } from 'lucide-react'
-import type { Bean, RoastLevel } from '@/types/bean'
+import type { Bean } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
 import { Stars } from '@/components/Stars'
@@ -124,13 +124,22 @@ function SwipeableItem({ open, onOpenChange, onTap, onDelete, children }: Swipea
 export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLibraryProps) {
   const scrollToTop = useScrollToTop()
   const [query, setQuery] = useState('')
-  const [roastFilter, setRoastFilter] = useState<RoastLevel | '全部'>('全部')
+  const [category, setCategory] = useState<'all' | 'roastLevel' | 'origin' | 'processingMethod' | 'brand'>('all')
+  const [filter, setFilter] = useState<string | null>(null)
+  const categoryOptions = useMemo<string[]>(() => category === 'all' ? [] : category === 'roastLevel'
+    ? [...ROAST_LEVELS]
+    : [...new Set(beans.map(bean => (bean[category] ?? '').trim()))].sort((a, b) => {
+      if (!a) return 1
+      if (!b) return -1
+      return a.localeCompare(b, 'zh-CN')
+    }), [beans, category])
+  const activeFilter = filter !== null && categoryOptions.includes(filter) ? filter : null
   const [openId, setOpenId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return beans.filter((b) => {
-      if (roastFilter !== '全部' && b.roastLevel !== roastFilter) return false
+      if (category !== 'all' && activeFilter !== null && (b[category] ?? '').trim() !== activeFilter) return false
       if (!q) return true
       return (
         b.name.toLowerCase().includes(q) ||
@@ -138,10 +147,13 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
         (b.brand ?? '').toLowerCase().includes(q) ||
         (b.variety ?? '').toLowerCase().includes(q) ||
         (b.flavor ?? '').toLowerCase().includes(q) ||
+        (b.milkFlavor ?? '').toLowerCase().includes(q) ||
+        (b.processingMethod ?? '').toLowerCase().includes(q) ||
+        (b.origin ?? '').toLowerCase().includes(q) ||
         b.roastLevel.includes(q)
       )
     })
-  }, [beans, query, roastFilter])
+  }, [beans, query, category, activeFilter])
 
   const grindText = (bean: Bean): string | null => {
     if (!bean.grindSetting) return null
@@ -188,23 +200,38 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
         </div>
       </div>
 
-      {/* 烘焙程度筛选 */}
-      <div className="bl-roast-filter px-6 mt-3 flex gap-2 overflow-x-auto no-scrollbar">
-        {(['全部', ...ROAST_LEVELS] as const).map((r) => (
+      {/* 分类维度与筛选标签 */}
+      <div className="px-6 mt-4 flex items-center justify-between gap-3">
+        <label htmlFor="bean-category" className="text-[12px] text-[var(--c-ink-faint)]">分类方式</label>
+        <select id="bean-category" value={category} onChange={(e) => {
+          setCategory(e.target.value as typeof category)
+          setFilter(null)
+          setOpenId(null)
+        }} className="rounded-full px-3 py-2 text-[13px] text-[var(--c-ink)] bg-[var(--c-surface)] border border-[var(--c-border)]">
+          <option value="all">全部</option>
+          <option value="roastLevel">按烘焙度</option>
+          <option value="origin">按产区</option>
+          <option value="processingMethod">按处理法</option>
+          <option value="brand">店铺</option>
+        </select>
+      </div>
+      {category !== 'all' && <div className="bl-roast-filter px-6 mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+        {categoryOptions.map((r) => (
           <button
-            key={r}
+            key={`value:${r}`}
             type="button"
-            onClick={() => setRoastFilter(r)}
+            onClick={() => { setFilter(r); setOpenId(null) }}
+            aria-pressed={activeFilter === r}
             className={`shrink-0 px-3.5 py-1.5 rounded-full text-[13px] transition-colors ${
-              roastFilter === r
+              activeFilter === r
                 ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]'
                 : 'bg-[var(--c-surface)]/70 text-[var(--c-ink-soft)] border border-[var(--c-border)]'
             }`}
           >
-            {r}
+            {r || '未填写'}
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* 豆袋列表 */}
       <div className="px-6 mt-5 space-y-3.5">
@@ -233,8 +260,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
                   </h3>
                 </div>
                 <p className="text-[12px] text-[var(--c-ink-faint)] mt-1">
-                  {bean.roastLevel} · {bean.status}
-                  {bean.repurchaseCount > 0 && ` · 回购 ${bean.repurchaseCount} 次`}
+                  {[bean.origin?.trim(), bean.processingMethod?.trim(), bean.roastLevel].filter(Boolean).join(' · ')}
                 </p>
                 {grindText(bean) && (
                   <p className="text-[12px] text-[var(--c-ink-faint)] mt-0.5">{grindText(bean)}</p>

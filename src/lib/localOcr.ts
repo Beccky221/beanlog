@@ -47,6 +47,48 @@ async function readableImage(blob: Blob): Promise<HTMLCanvasElement> {
   }
 }
 
+/** 用局部亮度补偿拍摄阴影；保留原图识别结果，增强结果仅作为补读。 */
+function enhancePhoto(photo: HTMLCanvasElement): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = photo.width
+  canvas.height = photo.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return photo
+  ctx.drawImage(photo, 0, 0)
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const { width, height } = canvas
+  const gray = new Uint8Array(width * height)
+  const horizontal = new Float32Array(gray.length)
+  const radius = Math.max(12, Math.round(Math.min(width, height) / 24))
+  for (let i = 0; i < gray.length; i++) {
+    gray[i] = Math.round(pixels.data[i * 4] * .299 + pixels.data[i * 4 + 1] * .587 + pixels.data[i * 4 + 2] * .114)
+  }
+  // 分两次滑动平均，避免为高分辨率照片分配大型积分图。
+  for (let y = 0; y < height; y++) {
+    let sum = 0
+    for (let x = 0; x <= Math.min(radius, width - 1); x++) sum += gray[y * width + x]
+    for (let x = 0; x < width; x++) {
+      horizontal[y * width + x] = sum / (Math.min(width - 1, x + radius) - Math.max(0, x - radius) + 1)
+      if (x - radius >= 0) sum -= gray[y * width + x - radius]
+      if (x + radius + 1 < width) sum += gray[y * width + x + radius + 1]
+    }
+  }
+  for (let x = 0; x < width; x++) {
+    let sum = 0
+    for (let y = 0; y <= Math.min(radius, height - 1); y++) sum += horizontal[y * width + x]
+    for (let y = 0; y < height; y++) {
+      const i = y * width + x
+      const mean = sum / (Math.min(height - 1, y + radius) - Math.max(0, y - radius) + 1)
+      const value = Math.max(0, Math.min(255, (gray[i] * 235 / (mean + 15) - 170) * 1.25 + 170))
+      pixels.data[i * 4] = pixels.data[i * 4 + 1] = pixels.data[i * 4 + 2] = value
+      if (y - radius >= 0) sum -= horizontal[(y - radius) * width + x]
+      if (y + radius + 1 < height) sum += horizontal[(y + radius + 1) * width + x]
+    }
+  }
+  ctx.putImageData(pixels, 0, 0)
+  return canvas
+}
+
 async function language(code: string, signal: AbortSignal, report: (text: string) => void) {
   signal.throwIfAborted()
   const key = `ocr.model.v1.${code}`
@@ -69,7 +111,7 @@ async function language(code: string, signal: AbortSignal, report: (text: string
 }
 
 /** 引擎与 worker 随 HTML 内嵌；只有首次获取语言包需要联网。图片不发送到任何服务。 */
-export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => void, signal: AbortSignal) {
+export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => void, signal: AbortSignal, enhance = false) {
   const photo = await readableImage(blob)
   signal.throwIfAborted()
   const langs = []
@@ -130,6 +172,22 @@ export async function recognizeLocalPhoto(blob: Blob, report: (text: string) => 
           height: (line.bbox.y1 - line.bbox.y0) / alternate.height,
         }))))]
       }
+    }
+    if (enhance) {
+      report('正在增强实拍照片并补读文字…')
+      // 先让界面更新，也让用户可以在额外处理之前取消。
+      await new Promise(resolve => setTimeout(resolve, 0))
+      signal.throwIfAborted()
+      const enhanced = enhancePhoto(photo)
+      signal.throwIfAborted()
+      const extra = await Promise.race([worker.recognize(enhanced, {}, { text: true, blocks: true }), interrupted, engineError])
+      signal.throwIfAborted()
+      text += '\n' + extra.data.text.trim()
+      lines = [...lines, ...(extra.data.blocks ?? []).flatMap(block => block.paragraphs.flatMap(paragraph => paragraph.lines.map(line => ({
+        text: line.text, confidence: line.confidence,
+        x: line.bbox.x0 / enhanced.width, y: line.bbox.y0 / enhanced.height,
+        height: (line.bbox.y1 - line.bbox.y0) / enhanced.height,
+      }))))]
     }
     return { text, confidence: data.confidence, lines }
   } finally {
