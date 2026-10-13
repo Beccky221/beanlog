@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera } from 'lucide-react'
+import { Camera, Images, ScanText } from 'lucide-react'
 import type { Bean, RoastLevel } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import { extractIdentity, recognizeLocalPhoto } from '@/lib/localOcr'
@@ -31,6 +31,8 @@ export function PhotoRecognition({ bean, onApply, onUsePhoto }: { bean: Bean; on
   const [askPhoto, setAskPhoto] = useState(false)
   const [savingPhoto, setSavingPhoto] = useState(false)
   const [photoSaved, setPhotoSaved] = useState(false)
+  const [chooseSource, setChooseSource] = useState(false)
+  const albumInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
   const controller = useRef<AbortController | null>(null)
   useEffect(() => () => controller.current?.abort(), [])
@@ -45,6 +47,7 @@ export function PhotoRecognition({ bean, onApply, onUsePhoto }: { bean: Bean; on
   const start = async (photo: File, useEnhancement = enhance) => {
     if (busy || savingPhoto) return
     controller.current?.abort()
+    setChooseSource(false)
     setSource(photo)
     setAskPhoto(false)
     setPhotoSaved(false)
@@ -108,9 +111,18 @@ export function PhotoRecognition({ bean, onApply, onUsePhoto }: { bean: Bean; on
     <div className="mt-3">
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="hidden" aria-label="拍摄用于识别的照片"
         onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) { setEnhance(true); void start(file, true) } }} />
-      <button type="button" disabled={busy || savingPhoto} onClick={() => cameraInput.current?.click()}
-        className="mt-2 mx-auto w-fit px-3 py-2 rounded-full flex items-center justify-center gap-1.5 text-[12px] text-[var(--c-accent)] disabled:opacity-50"><Camera size={15} />拍照识别</button>
-      <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-faint)]">拍摄包装标签来识别。首次使用需联网下载语言包，照片只在本机处理。</p>
+      <input ref={albumInput} type="file" accept="image/*" className="hidden" aria-label="从相册选择用于识别的图片"
+        onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void start(file) }} />
+      <button type="button" disabled={busy || savingPhoto} aria-expanded={chooseSource} aria-controls="recognition-source-options" onClick={() => setChooseSource(open => !open)}
+        className="mt-2 mx-auto w-fit px-3 py-2 rounded-full flex items-center justify-center gap-1.5 text-[12px] text-[var(--c-accent)] disabled:opacity-50"><ScanText size={15} />{busy ? '正在识别…' : '图片识别'}</button>
+      {chooseSource && <div id="recognition-source-options" role="group" aria-label="选择识别图片来源" className="mt-3 rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-3">
+        <div className="flex justify-center gap-3 py-2">
+          <button type="button" onClick={() => { setChooseSource(false); cameraInput.current?.click() }} className="px-4 py-2.5 rounded-full flex items-center gap-2 text-[13px] text-[var(--c-accent)]"><Camera size={16} />拍照</button>
+          <button type="button" onClick={() => { setChooseSource(false); albumInput.current?.click() }} className="px-4 py-2.5 rounded-full flex items-center gap-2 text-[13px] text-[var(--c-accent)]"><Images size={16} />从相册选图</button>
+        </div>
+        <button type="button" onClick={() => setChooseSource(false)} className="block mx-auto mt-1 px-3 py-1.5 rounded-full text-[12px] text-[var(--c-ink-faint)]">取消</button>
+      </div>}
+      <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-faint)]">拍摄包装标签，或从相册选择信息图来识别。首次使用需联网下载语言包，照片只在本机处理。</p>
       <label className="mt-2 flex items-center gap-2 text-[12px] text-[var(--c-ink-soft)]">
         <input type="checkbox" checked={enhance} disabled={busy} onChange={(e) => setEnhance(e.target.checked)} />实拍增强（试用）
       </label>
