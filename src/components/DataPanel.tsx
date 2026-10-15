@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Download, Upload, RefreshCw, HardDrive, AlertTriangle } from 'lucide-react'
 import type { Store } from '@/lib/store'
 import {
@@ -27,9 +27,11 @@ function formatBytes(n: number): string {
 
 /**
  * 数据管理：导出/导入备份 + 空间占用。
- * 这是「换手机 / 清缓存 / 空间告急」时唯一能救命的地方，所以放在「我的」里显眼位置。
+ * 默认收起，按需展开备份与存储操作。
  */
 export function DataPanel({ store }: DataPanelProps) {
+  const [open, setOpen] = useState(false)
+  const panelId = useId()
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null)
   const [busy, setBusy] = useState<null | 'export' | 'import' | 'prune'>(null)
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
@@ -117,9 +119,25 @@ export function DataPanel({ store }: DataPanelProps) {
 
   return (
     <div className="px-6 mt-6">
-      <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">数据管理</p>
+      <div className="bg-[var(--c-surface)] rounded-2xl border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)] p-4">
+        <button
+          type="button"
+          onClick={() => setOpen(value => !value)}
+          disabled={busy !== null}
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="w-full flex items-center gap-3 text-left disabled:opacity-60"
+        >
+          <HardDrive size={20} className="text-[var(--c-accent)] shrink-0" aria-hidden="true" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] text-[var(--c-ink)]">数据管理</span>
+            <span className="block mt-1 text-[12px] text-[var(--c-ink-faint)]">备份、恢复与照片清理</span>
+          </span>
+          <span className="text-[var(--c-ink-faint)]" aria-hidden="true">{open ? '−' : '＋'}</span>
+        </button>
 
-      <div className="bg-[var(--c-surface)] rounded-2xl border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)] p-3 space-y-3">
+      <div id={panelId} hidden={!open}>
+      <div className="mt-4 space-y-3">
         {/* 存储占用 */}
         <div className="px-1 py-1 flex items-center gap-3">
           <HardDrive size={16} className="text-[var(--c-ink-faint)] shrink-0" />
@@ -209,6 +227,8 @@ export function DataPanel({ store }: DataPanelProps) {
       <p className="text-[10.5px] text-[var(--c-placeholder)] mt-4">
         备份格式 {BACKUP_SCHEMA} v{BACKUP_VERSION}
       </p>
+      </div>
+      </div>
     </div>
   )
 }

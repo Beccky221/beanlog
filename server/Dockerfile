@@ -1,6 +1,6 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY server/recommend.mjs ./server/recommend.mjs
+COPY server/*.mjs ./server/
 ENV RECOMMEND_HOST=0.0.0.0
 ENV RECOMMEND_PORT=8787
 EXPOSE 8787

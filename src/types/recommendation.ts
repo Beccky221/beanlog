@@ -1,4 +1,5 @@
 export interface CoffeePreferences {
+  brew: 'any' | 'espresso' | 'filter' | 'cold' | 'omni'
   origins: string[]
   excludedOrigins: string[]
   varieties: string[]
@@ -9,6 +10,9 @@ export interface CoffeePreferences {
   maxPrice100g: number | null
 }
 export interface CoffeeProduct {
+  listingPriceCny?: number | null
+  imageUrl?: string
+  brew?: 'espresso' | 'filter' | 'cold' | 'omni'
   id: string
   name: string
   roaster: string
@@ -24,7 +28,7 @@ export interface CoffeeProduct {
   url: string
   evidence: string
   checkedAt: string
-  source: 'catalog' | 'qwen'
+  source: 'catalog' | 'qwen' | 'onebound'
 }
 export interface RoasterSuggestion {
   id: string
@@ -32,7 +36,7 @@ export interface RoasterSuggestion {
   url: string
   evidence: string
   checkedAt: string
-  source: 'catalog' | 'qwen'
+  source: 'catalog' | 'qwen' | 'onebound'
 }
 export interface RecommendationState {
   preferences: CoffeePreferences

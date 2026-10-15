@@ -457,6 +457,91 @@ body{background:var(--bl-outer);color:var(--bl-ink)}
 #root .bl-data-action:active:not(:disabled) { box-shadow: var(--bl-relief-pressed); transform: translateY(1px); }
 #root .bl-data-action:disabled { box-shadow: none; opacity: .6; }
 
+/* 每日记录的索引文件页：圆角页签与纸面接合，后方露出一层纸边。 */
+.bl-record-folder {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: 6px;
+}
+.bl-record-folder::before {
+  content: '';
+  position: absolute;
+  inset: 49px 5px -5px;
+  z-index: 0;
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  background: var(--c-surface-soft);
+}
+.bl-record-index {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  min-height: 46px;
+  gap: 7px;
+  padding: 0 12px;
+  margin-bottom: -1px;
+}
+#root .bl-record-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex: 1 1 0;
+  max-width: 146px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 14px 9px;
+  border: 1px solid var(--c-line);
+  border-radius: 11px 19px 0 0;
+  background: var(--c-soft);
+  color: var(--c-ink-faint);
+  box-shadow: none;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background-color .2s ease, color .2s ease, min-height .2s ease, padding .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+#root .bl-record-tab[aria-selected='true'] {
+  z-index: 1;
+  min-height: 46px;
+  padding-top: 10px;
+  padding-bottom: 11px;
+  border-bottom-color: var(--c-surface);
+  background: var(--c-surface);
+  color: var(--c-ink);
+}
+.bl-record-tab-number {
+  font-size: 10px;
+  letter-spacing: .08em;
+  opacity: .55;
+}
+#root .bl-record-tab[aria-selected='true'] .bl-record-tab-number { color: var(--c-accent); opacity: 1; }
+.bl-record-sheet {
+  position: relative;
+  z-index: 1;
+  padding: 4px 16px 0;
+  border: 1px solid var(--c-line);
+  border-radius: 16px;
+  background: var(--c-surface);
+  box-shadow: 0 4px 14px rgb(var(--c-shadow) / .05);
+}
+.bl-record-sheet:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 3px; }
+.bl-record-page-content {
+  --record-page-offset: 8px;
+  animation: bl-record-page-in .24s cubic-bezier(.22,.61,.36,1) both;
+}
+.bl-record-page-content[data-source='home'] { --record-page-offset: -8px; }
+@keyframes bl-record-page-in {
+  from { opacity: .35; transform: translateX(var(--record-page-offset)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #root .bl-record-tab { transition: none; }
+  .bl-record-page-content { animation: none; }
+}
+
 .beanlog-startup-logo { display:block; width:120px; height:120px; background-color:var(--c-primary); mask-repeat:no-repeat; -webkit-mask-repeat:no-repeat; mask-position:center; -webkit-mask-position:center; mask-size:contain; -webkit-mask-size:contain; }
 
 /* 输入文字和日期控件也延续手写风格。字号保持原布局，避免小屏按钮拥挤。 */
@@ -483,6 +568,24 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   -webkit-text-stroke: 0.2px currentColor;
 }
 .bl-journal-title-compact { font-size: 25px; letter-spacing: 0.02em; }
+
+/* 「豆库」专属题字：自绘行楷轮廓，轻重起伏与收锋由字形本身呈现。 */
+@font-face {
+  font-family: 'Beanlog Library Ink';
+  src: url('./assets/fonts/BeanlogLibraryInk.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+.bl-library-title {
+  font-family: 'Beanlog Library Ink', var(--font-title-handwritten);
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.045em;
+  -webkit-text-stroke: 0;
+  font-synthesis: none;
+}
 
 /* 豆子身份卡使用平整的文字输入区，与标签保持一致。 */
 #root textarea.bl-identity-textarea {

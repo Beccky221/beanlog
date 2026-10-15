@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Bookmark, ExternalLink, Search, Settings, Sparkles } from 'lucide-react'
+import { ArrowLeft, Bookmark, ExternalLink, Search, LockKeyhole, Sparkles } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import type { CoffeePreferences, CoffeeProduct, RecommendationState } from '@/types/recommendation'
 import { matchProduct, normalizeProduct, normalizeRecommendationState, normalizeRoaster } from '@/lib/recommendations'
 import { COFFEE_CATALOG, ROASTER_CATALOG } from '@/data/coffeeCatalog'
+import type { RecommendationSession } from '@/lib/recommendationAccess'
 
 const unique = (items: string[]) => [...new Set(items.map(s => s.trim()).filter(Boolean))]
 const parts = (text?: string) => (text ?? '').split(/[、,，/;；\n]+/).map(s => s.trim()).filter(Boolean)
 const dateText = (value: string) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '日期待确认' : date.toLocaleDateString('zh-CN') }
+const isTaobaoItem = (url: string) => {
+  try { const u = new URL(url); return ['item.taobao.com', 'detail.tmall.com', 'detail.m.tmall.com'].includes(u.hostname) && !!u.searchParams.get('id') } catch { return false }
+}
 const inputClass = 'w-full rounded-xl bg-[var(--c-surface-soft)] px-3 py-2 outline-none text-[13px] text-[var(--c-ink)]'
 function Choices({ title, options, selected, onChange }: { title: string; options: string[]; selected: string[]; onChange: (next: string[]) => void }) {
   const [custom, setCustom] = useState('')
@@ -19,21 +23,12 @@ function Choices({ title, options, selected, onChange }: { title: string; option
     <div className="flex gap-2"><input aria-label={`添加${title}`} value={custom} onChange={e => setCustom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} placeholder="也可以自己填写，多项用逗号隔开" className={inputClass} /><button type="button" disabled={!custom.trim()} onClick={add} className="rounded-full px-3 text-[12px] shrink-0 text-[var(--c-accent)] disabled:opacity-40">添加</button></div>
   </fieldset>
 }
-function readSetting(key: string, fallback = '') { try { return localStorage.getItem(key) || fallback } catch { return fallback } }
-function readToken() { try { return sessionStorage.getItem('beanlog.recommend.token') || '' } catch { return '' } }
-function serviceUrl(value: string) {
-  const u = new URL(value)
-  if (u.username || u.password || u.search || u.hash || (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname)))) throw new Error('请填写 HTTPS 服务地址；本机调试可使用 http://127.0.0.1:8787。')
-  return u.href.replace(/\/$/, '')
-}
-
-export function CoffeeRecommendations({ beans, value, onChange, onBack }: { beans: Bean[]; value?: RecommendationState; onChange: (state: RecommendationState) => void; onBack: () => void }) {
+export function CoffeeRecommendations({ beans, value, onChange, onBack, connection, onAccessExpired }: { beans: Bean[]; value?: RecommendationState; onChange: (state: RecommendationState) => void; onBack: () => void; connection: RecommendationSession; onAccessExpired: () => void }) {
   const state = useMemo(() => normalizeRecommendationState(value), [value]), prefs = state.preferences
   const [preferencesOpen, setPreferencesOpen] = useState(true)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [view, setView] = useState<'products' | 'roasters' | 'saved'>('products')
-  const [endpoint, setEndpoint] = useState(() => readSetting('beanlog.recommend.endpoint', 'http://127.0.0.1:8787'))
-  const [token, setToken] = useState(readToken)
+  const [page, setPage] = useState(0)
+  useEffect(() => setPage(0), [state.preferences, view, state.lastSearchAt])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -51,16 +46,16 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack }: { bean
   const favorite = (product: CoffeeProduct) => onChange({ ...state, favoriteIds: state.favoriteIds.includes(product.id) ? state.favoriteIds.filter(id => id !== product.id) : [...state.favoriteIds, product.id] })
   const connect = async (search: boolean) => {
     setError(''); setMessage('')
-    if (token.length < 16) { setSettingsOpen(true); setError('先在推荐服务设置中填写服务地址和口令。阿里云 API Key 只在后端配置。'); return }
-    let base: string
-    try { base = serviceUrl(endpoint) } catch (e) { setError((e as Error).message); return }
+    const base = connection.endpoint
+    const token = connection.token
     controller.current?.abort()
     const task = new AbortController(); controller.current = task
     setBusy(true)
     const timeout = setTimeout(() => task.abort(), 75000)
     const snapshot = JSON.stringify(prefs)
     try {
-      const response = await fetch(`${base}/api/${search ? 'recommend' : 'status'}`, { method: search ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, ...(search ? { 'Content-Type': 'application/json' } : {}) }, body: search ? JSON.stringify({ preferences: prefs }) : undefined, signal: task.signal })
+      const response = await fetch(`${base}/api/${search ? 'recommend' : 'status'}`, { method: search ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, ...(search ? { 'Content-Type': 'application/json' } : {}) }, body: search ? JSON.stringify({ preferences: prefs }) : undefined, signal: task.signal, credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer' })
+      if (response.status === 401) { onAccessExpired(); return }
       const result = await response.json()
       if (!response.ok) throw new Error(typeof result.error === 'string' ? result.error : '推荐服务没有完成请求。')
       if (search) {
@@ -72,7 +67,7 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack }: { bean
         setMessage(`${result.cached ? '使用近期相同偏好的搜索缓存。' : '搜索完成。'}新增或更新 ${products.length} 款豆子、${freshRoasters.length} 家烘焙商。${typeof result.warning === 'string' ? result.warning : ''}`)
       } else {
         setConfigured(!!result.configured)
-        setMessage(result.configured ? `千问已连接，今天还可搜索 ${result.remaining} 次。` : '推荐服务已连接，但尚未配置千问。开通百炼并填写后端密钥后再试。')
+        setMessage(result.configured ? `${result.provider === 'onebound' ? '万邦淘宝商品服务' : '千问'}已连接，今天还可搜索 ${result.remaining} 次。` : '推荐服务已连接，但尚未配置千问。开通百炼并填写后端密钥后再试。')
       }
     } catch (e) {
       setError(task.signal.aborted ? '请求已取消或超时，可以稍后重试。' : e instanceof TypeError ? '无法连接推荐服务。请确认服务已启动、地址正确；手机端需可访问的 HTTPS 地址。' : (e as Error).message)
@@ -88,7 +83,7 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack }: { bean
     <header className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center justify-between bg-[var(--c-app)]/95 backdrop-blur">
       <button type="button" onClick={onBack} aria-label="返回我的" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
       <h2 className="text-[17px] text-[var(--c-ink)]">找一袋喜欢的豆</h2>
-      <button type="button" onClick={() => setSettingsOpen(open => !open)} aria-label="推荐服务设置" aria-expanded={settingsOpen} className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink-soft)]"><Settings size={18} /></button>
+      <button type="button" onClick={onAccessExpired} aria-label="更换邀请码" title="更换邀请码" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink-soft)]"><LockKeyhole size={18} /></button>
     </header>
     <div className="px-5">
       <p className="mt-3 text-[12px] leading-relaxed text-[var(--c-ink-faint)]">把偏好告诉豆袋小记，从真实商品资料中寻找下一袋。价格和库存以店铺页面为准。</p>
@@ -96,6 +91,8 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack }: { bean
         <button type="button" onClick={() => setPreferencesOpen(open => !open)} aria-expanded={preferencesOpen} className="w-full flex justify-between text-[15px] text-[var(--c-ink)]"><span>我的咖啡偏好</span><span>{preferencesOpen ? '−' : '＋'}</span></button>
         {preferencesOpen && <>
           <button type="button" onClick={useFavorites} className="mt-3 rounded-full px-3 py-2 text-[12px] text-[var(--c-accent)]">从喜欢的豆袋提取偏好</button>
+          <p className="mt-4 text-[12px] text-[var(--c-ink-soft)]">想找哪种豆？</p>
+          <div className="flex flex-wrap gap-2 py-3">{([['any', '不限'], ['espresso', '意式'], ['filter', '手冲'], ['cold', '冷萃'], ['omni', '全能豆']] as const).map(([brew, label]) => <button key={brew} type="button" aria-pressed={prefs.brew === brew} onClick={() => patchPrefs({ brew })} className={`rounded-full px-3 py-2 text-[12px] ${prefs.brew === brew ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'text-[var(--c-ink-soft)]'}`}>{label}</button>)}</div>
           <Choices title="喜欢的产地／产区" options={['埃塞俄比亚', '哥伦比亚', '巴拿马', '肯尼亚', '巴西', '云南', ...beans.flatMap(b => parts(b.origin)).slice(0, 12)]} selected={prefs.origins} onChange={origins => patchPrefs({ origins })} />
           <Choices title="喜欢的豆种" options={['瑰夏', '波旁', '铁皮卡', '卡杜拉', '卡杜艾', '原生种', '74110', '74112']} selected={prefs.varieties} onChange={varieties => patchPrefs({ varieties })} />
           <Choices title="处理法" options={['水洗', '日晒', '蜜处理', '厌氧', '湿刨']} selected={prefs.processes} onChange={processes => patchPrefs({ processes })} />
@@ -107,15 +104,7 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack }: { bean
           <p className="mt-3 text-[11px] text-[var(--c-ink-faint)]">偏好已自动保存。缺少价格或品种的信息会标注待确认。</p>
         </>}
       </section>
-      {settingsOpen && <section className="mt-4 p-4 rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)]">
-        <h3 className="text-[15px] text-[var(--c-ink)]">推荐服务设置</h3>
-        <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-faint)]">需先开通阿里云百炼，并在后端填写密钥。这里填写推荐服务地址和服务口令，不填写阿里云 API Key。</p>
-        <label className="block mt-3 text-[12px] text-[var(--c-ink-soft)]">服务地址<input value={endpoint} onChange={e => { setEndpoint(e.target.value); setConfigured(null) }} placeholder="https://你的推荐服务地址" className={`${inputClass} mt-1.5`} /></label>
-        <label className="block mt-3 text-[12px] text-[var(--c-ink-soft)]">服务口令<input type="password" autoComplete="off" value={token} onChange={e => { setToken(e.target.value); setConfigured(null) }} className={`${inputClass} mt-1.5`} /></label>
-        <button type="button" disabled={busy} onClick={() => { try { const base = serviceUrl(endpoint); localStorage.setItem('beanlog.recommend.endpoint', base); sessionStorage.setItem('beanlog.recommend.token', token); void connect(false) } catch (e) { setError((e as Error).message) } }} className="mt-3 rounded-full px-4 py-2 text-[13px] text-[var(--c-accent)] disabled:opacity-50">保存并检查连接</button>
-        <p className="mt-2 text-[11px] text-[var(--c-ink-faint)]">口令仅保留在当前会话，不随豆库备份导出。</p>
-      </section>}
-      <button type="button" disabled={busy} onClick={() => void connect(true)} className="mt-5 w-full flex items-center justify-center gap-2 rounded-full py-3 bg-[var(--c-primary)] text-[var(--c-primary-ink)] text-[14px] disabled:opacity-50"><Search size={17} />{busy ? '正在查找真实豆款…' : '用千问找新豆'}</button>
+      <button type="button" disabled={busy} onClick={() => void connect(true)} className="mt-5 w-full flex items-center justify-center gap-2 rounded-full py-3 bg-[var(--c-primary)] text-[var(--c-primary-ink)] text-[14px] disabled:opacity-50"><Search size={17} />{busy ? '正在查找真实豆款…' : '找新豆'}</button>
       <p className="mt-2 text-[11px] leading-relaxed text-[var(--c-ink-faint)]">{configured === false ? '千问尚未开通，推荐库仍可查看。' : '联网搜索会发送所选偏好，不发送你的照片、札记或整个豆库。相同偏好近期结果会复用以减少费用。'}</p>
       {busy && <button type="button" onClick={() => controller.current?.abort()} className="mt-2 px-3 py-1.5 rounded-full text-[12px] text-[var(--c-ink-faint)]">取消搜索</button>}
       {error && <p role="alert" className="mt-3 text-[12px] text-[var(--c-danger)] leading-relaxed">{error}</p>}
@@ -127,17 +116,24 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack }: { bean
         {view === 'roasters' ? roasters.map(roaster => <article key={roaster.url} className="p-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-line)]">
           <h3 className="text-[16px] text-[var(--c-ink)]">{roaster.name}</h3><p className="mt-2 text-[12px] leading-relaxed text-[var(--c-ink-soft)]">{roaster.evidence}</p><p className="mt-2 text-[11px] text-[var(--c-ink-faint)]">{roaster.source === 'qwen' ? '联网候选' : '官网资料入口'} · {dateText(roaster.checkedAt)}</p>
           <a href={roaster.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-[12px] text-[var(--c-accent)]">查看来源 <ExternalLink size={12} /></a>
-        </article>) : displayed.map(({ product, reasons, missing, partial }) => <article key={product.url} className="p-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-line)]">
-          <div className="flex justify-between gap-3"><div><h3 className="text-[16px] text-[var(--c-ink)]">{product.name}</h3><p className="mt-1 text-[12px] text-[var(--c-ink-faint)]">{product.roaster}</p></div><button type="button" onClick={() => favorite(product)} aria-label={state.favoriteIds.includes(product.id) ? '取消收藏豆款' : '收藏豆款'} aria-pressed={state.favoriteIds.includes(product.id)} className="self-start rounded-full p-2 text-[var(--c-accent)]"><Bookmark size={18} fill={state.favoriteIds.includes(product.id) ? 'currentColor' : 'none'} /></button></div>
+        </article>) : displayed.slice(page * 10, (page + 1) * 10).map(({ product, reasons, missing, partial }) => <article key={product.url} className="p-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-line)]">
+          <div className="flex justify-between gap-3">{product.imageUrl && <img src={product.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="w-16 h-20 shrink-0 rounded-xl object-contain" />}<div className="min-w-0 flex-1"><h3 className="text-[16px] text-[var(--c-ink)] line-clamp-2">{product.name}</h3><p className="mt-1 text-[12px] text-[var(--c-ink-faint)]">{product.roaster}</p></div><button type="button" onClick={() => favorite(product)} aria-label={state.favoriteIds.includes(product.id) ? '取消收藏豆款' : '收藏豆款'} aria-pressed={state.favoriteIds.includes(product.id)} className="self-start rounded-full p-2 text-[var(--c-accent)]"><Bookmark size={18} fill={state.favoriteIds.includes(product.id) ? 'currentColor' : 'none'} /></button></div>
           <p className="mt-3 text-[12px] text-[var(--c-ink-soft)]">{[product.origins.join('／'), product.processes.join('／'), product.roast].filter(Boolean).join(' · ') || '详细属性待确认'}</p>
-          {product.varieties.length > 0 && <p className="mt-1 text-[12px] text-[var(--c-ink-faint)]">豆种：{product.varieties.join('、')}</p>}
-          {product.flavors.length > 0 && <p className="mt-1 text-[12px] text-[var(--c-ink-faint)]">风味：{product.flavors.join('、')}</p>}
-          {reasons.length > 0 && <p className="mt-3 text-[12px] text-[var(--c-accent)]">{partial ? '部分匹配' : '匹配偏好'}：{reasons.join(' · ')}</p>}
-          {missing.length > 0 && <p className="mt-1 text-[11px] text-[var(--c-ink-faint)]">{missing.join(' · ')}</p>}
-          <p className="mt-3 text-[13px] text-[var(--c-ink)]">{product.price100gCny === null ? '人民币价格待确认' : `参考 ¥${product.price100gCny.toFixed(1)}／100g`}</p><p className="mt-1 text-[11px] text-[var(--c-ink-faint)]">{product.priceNote}</p>
-          <p className="mt-3 text-[12px] leading-relaxed text-[var(--c-ink-soft)]">{product.evidence}</p>
-          <div className="mt-3 flex items-center justify-between gap-2"><span className="text-[10.5px] text-[var(--c-ink-faint)]">{product.source === 'qwen' ? '联网候选' : '官网资料'} · {dateText(product.checkedAt)}</span><a href={product.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[12px] text-[var(--c-accent)]">查看商品来源 <ExternalLink size={12} /></a></div>
+          {product.flavors.length > 0 && <p className="mt-1 text-[12px] text-[var(--c-ink-faint)]">{product.flavors.slice(0, 3).join(' · ')}</p>}
+          <p className="mt-3 text-[13px] text-[var(--c-ink)]">{product.price100gCny === null ? product.listingPriceCny ? `展示价 ¥${product.listingPriceCny.toFixed(2)} · 规格待确认` : '价格待确认' : `¥${product.price100gCny.toFixed(1)}／100g`}</p>
+          <details className="mt-3 text-[11px] text-[var(--c-ink-faint)]"><summary className="cursor-pointer">匹配与来源详情{partial ? ' · 部分匹配' : ''}</summary>
+            {product.varieties.length > 0 && <p className="mt-2">豆种：{product.varieties.join('、')}</p>}
+            {reasons.length > 0 && <p className="mt-2">{reasons.join(' · ')}</p>}
+            {missing.length > 0 && <p className="mt-2">{missing.join(' · ')}</p>}
+            <p className="mt-2">{product.priceNote}</p><p className="mt-2 leading-relaxed">{product.evidence}</p>
+          </details>
+          <div className="mt-3 flex items-center justify-between gap-2"><span className="text-[10.5px] text-[var(--c-ink-faint)]">{product.source === 'onebound' ? '淘宝商品 · 万邦' : product.source === 'qwen' ? '联网候选' : '官网资料'} · {dateText(product.checkedAt)}</span><a href={product.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[12px] text-[var(--c-accent)]">{isTaobaoItem(product.url) ? '直达商品' : '查看来源'} <ExternalLink size={12} /></a></div>
         </article>)}
+        {view !== 'roasters' && displayed.length > 0 && <div className="flex items-center justify-between gap-3 py-3">
+          <button type="button" disabled={page === 0} onClick={() => setPage(n => n - 1)} className="rounded-full px-4 py-2 text-[12px] text-[var(--c-accent)] disabled:opacity-30">上一页</button>
+          <span className="text-[11px] text-[var(--c-ink-faint)]">第 {page + 1} / {Math.ceil(displayed.length / 10)} 页 · 每页10款</span>
+          <button type="button" disabled={(page + 1) * 10 >= displayed.length} onClick={() => setPage(n => n + 1)} className="rounded-full px-4 py-2 text-[12px] text-[var(--c-accent)] disabled:opacity-30">下一页</button>
+        </div>}
         {view !== 'roasters' && displayed.length === 0 && <div className="p-5 rounded-2xl border border-dashed border-[var(--c-line)] text-center">
           <Sparkles size={24} className="mx-auto text-[var(--c-ink-faint)]" /><p className="mt-3 text-[13px] text-[var(--c-ink-soft)]">{view === 'saved' ? '看到喜欢的豆款，可以点书签收藏。' : '推荐库暂时没有符合这些偏好的豆款。'}</p>
           {view !== 'saved' && <p className="mt-2 text-[12px] text-[var(--c-ink-faint)]">可以调整偏好，或开通千问后联网查找。</p>}

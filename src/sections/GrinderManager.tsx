@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ChevronDown, Disc3, Plus, Trash2 } from 'lucide-react'
 import type { Grinder } from '@/types/grinder'
 import { newGrinder } from '@/lib/grinder'
@@ -150,109 +150,126 @@ function GrinderForm({
 }
 
 export function GrinderManager({ grinders, onAdd, onUpdate, onRemove }: GrinderManagerProps) {
+  const [open, setOpen] = useState(false)
+  const panelId = useId()
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   return (
     <div className="px-6 mt-4">
-      <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">磨豆器管理</p>
-      <div className="bg-[var(--c-surface)] rounded-2xl px-4 py-1 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
-        {grinders.map((g) => {
-          const editing = editingId === g.id
-          return (
-            <div key={g.id} className="border-b border-[var(--c-soft)] last:border-b-0 py-3">
-              <button
-                type="button"
-                onClick={() => setEditingId(editing ? null : g.id)}
-                className="w-full flex items-center gap-2.5 text-left"
-              >
-                <Disc3 size={17} className="text-[var(--c-ink-faint)] shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14.5px] text-[var(--c-ink)] truncate">{g.name}</p>
-                  <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">
-                    刻度 {g.min}–{g.max} {g.unit} · 步进 {g.step}
-                    {g.note ? ` · ${g.note}` : ''}
-                  </p>
-                </div>
-                <ChevronDown
-                  size={15}
-                  className={`text-[var(--c-ink-ghost)] shrink-0 transition-transform ${editing ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {editing && (
-                <>
-                  <GrinderForm
-                    initial={toForm(g)}
-                    submitLabel="保存修改"
-                    onSubmit={(f) => {
-                      onUpdate(g.id, {
-                        name: f.name.trim(),
-                        min: Number(f.min),
-                        max: Number(f.max),
-                        step: Number(f.step),
-                        unit: f.unit.trim(),
-                        note: f.note.trim() || undefined,
-                      })
-                      setEditingId(null)
-                    }}
-                    onCancel={() => setEditingId(null)}
+      <div className="bg-[var(--c-surface)] rounded-2xl p-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
+        <button
+          type="button"
+          onClick={() => setOpen(value => !value)}
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="w-full flex items-center gap-3 text-left"
+        >
+          <Disc3 size={20} className="text-[var(--c-accent)] shrink-0" aria-hidden="true" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] text-[var(--c-ink)]">磨豆器管理</span>
+            <span className="block mt-1 text-[12px] text-[var(--c-ink-faint)]">管理磨豆器与研磨刻度</span>
+          </span>
+          <span className="text-[var(--c-ink-faint)]" aria-hidden="true">{open ? '−' : '＋'}</span>
+        </button>
+        <div id={panelId} hidden={!open} className="mt-4">
+          {grinders.map((g) => {
+            const editing = editingId === g.id
+            return (
+              <div key={g.id} className="border-b border-[var(--c-soft)] last:border-b-0 py-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingId(editing ? null : g.id)}
+                  className="w-full flex items-center gap-2.5 text-left"
+                >
+                  <Disc3 size={17} className="text-[var(--c-ink-faint)] shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14.5px] text-[var(--c-ink)] truncate">{g.name}</p>
+                    <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">
+                      刻度 {g.min}–{g.max} {g.unit} · 步进 {g.step}
+                      {g.note ? ` · ${g.note}` : ''}
+                    </p>
+                  </div>
+                  <ChevronDown
+                    size={15}
+                    className={`text-[var(--c-ink-ghost)] shrink-0 transition-transform ${editing ? 'rotate-180' : ''}`}
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `删除「${g.name}」？豆子上已记录的研磨信息会保留文字，但不再关联这台磨豆器。`
-                        )
-                      ) {
-                        onRemove(g.id)
+                </button>
+                {editing && (
+                  <>
+                    <GrinderForm
+                      initial={toForm(g)}
+                      submitLabel="保存修改"
+                      onSubmit={(f) => {
+                        onUpdate(g.id, {
+                          name: f.name.trim(),
+                          min: Number(f.min),
+                          max: Number(f.max),
+                          step: Number(f.step),
+                          unit: f.unit.trim(),
+                          note: f.note.trim() || undefined,
+                        })
                         setEditingId(null)
-                      }
-                    }}
-                    className="mt-2 flex items-center gap-1 text-[12.5px] text-[var(--c-danger)] active:opacity-70"
-                  >
-                    <Trash2 size={13} /> 删除这台磨豆器
-                  </button>
-                </>
-              )}
+                      }}
+                      onCancel={() => setEditingId(null)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `删除「${g.name}」？豆子上已记录的研磨信息会保留文字，但不再关联这台磨豆器。`
+                          )
+                        ) {
+                          onRemove(g.id)
+                          setEditingId(null)
+                        }
+                      }}
+                      className="mt-2 flex items-center gap-1 text-[12.5px] text-[var(--c-danger)] active:opacity-70"
+                    >
+                      <Trash2 size={13} /> 删除这台磨豆器
+                    </button>
+                  </>
+                )}
+              </div>
+            )
+          })}
+
+          {grinders.length === 0 && !adding && (
+            <p className="py-4 text-[13px] text-[var(--c-ink-ghost)]">还没有磨豆器，先添加一台吧。</p>
+          )}
+
+          {adding ? (
+            <div className="py-3">
+              <GrinderForm
+                initial={toForm(newGrinder())}
+                submitLabel="添加磨豆器"
+                onSubmit={(f) => {
+                  const g = newGrinder()
+                  onAdd({
+                    ...g,
+                    name: f.name.trim(),
+                    min: Number(f.min),
+                    max: Number(f.max),
+                    step: Number(f.step),
+                    unit: f.unit.trim(),
+                    note: f.note.trim() || undefined,
+                  })
+                  setAdding(false)
+                }}
+                onCancel={() => setAdding(false)}
+              />
             </div>
-          )
-        })}
-
-        {grinders.length === 0 && !adding && (
-          <p className="py-4 text-[13px] text-[var(--c-ink-ghost)]">还没有磨豆器，先添加一台吧。</p>
-        )}
-
-        {adding ? (
-          <div className="py-3">
-            <GrinderForm
-              initial={toForm(newGrinder())}
-              submitLabel="添加磨豆器"
-              onSubmit={(f) => {
-                const g = newGrinder()
-                onAdd({
-                  ...g,
-                  name: f.name.trim(),
-                  min: Number(f.min),
-                  max: Number(f.max),
-                  step: Number(f.step),
-                  unit: f.unit.trim(),
-                  note: f.note.trim() || undefined,
-                })
-                setAdding(false)
-              }}
-              onCancel={() => setAdding(false)}
-            />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="w-full flex items-center gap-2 py-3.5 text-[var(--c-accent)] text-[14px] font-medium active:opacity-70"
-          >
-            <Plus size={16} /> 添加磨豆器
-          </button>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="w-full flex items-center gap-2 py-3.5 text-[var(--c-accent)] text-[14px] font-medium active:opacity-70"
+            >
+              <Plus size={16} /> 添加磨豆器
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

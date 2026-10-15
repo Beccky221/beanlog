@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, ImagePlus, MapPin, PenLine, Plus, Trash2, X } from 'lucide-react'
 import { BREW_METHODS, type DailyRecord } from '@/types/bean'
 import { processPhotoFile } from '@/lib/image'
@@ -257,7 +257,7 @@ function RecordParams({ record }: { record: DailyRecord }) {
   const note = record.note?.trim()
   return (
     <div className="mt-2">
-      <p className="text-[12.5px] text-[var(--c-ink-soft)]">{record.source === 'outside' ? '外面买' : '自己做'}</p>
+      <p className="text-[12.5px] text-[var(--c-ink-soft)]">{record.source === 'outside' ? '外面喝' : '自己做'}</p>
       {record.source === 'outside' && (record.locationName?.trim() || record.location) && <p className="mt-1 text-[12px] text-[var(--c-ink-faint)] flex items-start gap-1">
         <MapPin size={13} className="shrink-0 mt-0.5" />
         {record.locationName?.trim() || (record.location && `${record.location.latitude.toFixed(5)}, ${record.location.longitude.toFixed(5)}`)}
@@ -531,10 +531,9 @@ function EntryModule({
         {busy && <p className="text-[12px] text-[var(--c-ink-faint)] mt-2">正在处理照片…</p>}
       </div>
 
-      {/* 冲煮参数 */}
-      <div className="px-5 mt-3">
-        <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
-          <DrinkContext entry={entry} onPatch={onPatch} />
+      {/* 索引文件页：来源页签与该页内容连成一张纸。 */}
+      <div className="px-5 mt-4">
+        <DrinkContext entry={entry} onPatch={onPatch}>
           {entry.source !== 'outside' && <>
           <div className="flex gap-2 py-3.5 border-b border-[var(--c-soft)] overflow-x-auto">
             {BREW_METHODS.map((m) => {
@@ -582,14 +581,34 @@ function EntryModule({
               className="w-full bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)] placeholder:text-[var(--c-placeholder)]"
             />
           </div>
-        </div>
+        </DrinkContext>
       </div>
     </div>
   )
 }
 
 /** 每杯独立记录来源与地点；定位仅由用户点击触发。 */
-function DrinkContext({ entry, onPatch }: { entry: DailyRecord; onPatch: (patch: Partial<DailyRecord>) => void }) {
+function DrinkContext({ entry, onPatch, children }: { entry: DailyRecord; onPatch: (patch: Partial<DailyRecord>) => void; children: ReactNode }) {
+  const folderId = useId()
+  const activeSource = entry.source ?? 'home'
+  const sources = ['home', 'outside'] as const
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const previousHeight = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current
+    const from = previousHeight.current
+    previousHeight.current = null
+    if (!sheet || from === null || !sheet.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const to = sheet.getBoundingClientRect().height
+    if (Math.abs(from - to) < 1) return
+    sheet.style.overflow = 'hidden'
+    const animation = sheet.animate([{ height: `${from}px` }, { height: `${to}px` }], {
+      duration: 240, easing: 'cubic-bezier(.22,.61,.36,1)',
+    })
+    const restore = () => { sheet.style.overflow = '' }
+    animation.onfinish = restore
+    return () => { animation.cancel(); restore() }
+  }, [activeSource])
   const [locating, setLocating] = useState(false)
   const [message, setMessage] = useState('')
   const request = useRef(0)
@@ -603,6 +622,15 @@ function DrinkContext({ entry, onPatch }: { entry: DailyRecord; onPatch: (patch:
     setSearching(false)
     setCafes([])
     setCafeQuery('')
+  }
+  const changeSource = (source: 'home' | 'outside') => {
+    if (source === activeSource) return
+    previousHeight.current = sheetRef.current?.getBoundingClientRect().height ?? null
+    request.current++
+    clearSearch()
+    setLocating(false)
+    setMessage('')
+    onPatch({ source })
   }
   const searchCafes = async (latitude: number, longitude: number, token: number) => {
     searchController.current?.abort()
@@ -644,22 +672,27 @@ function DrinkContext({ entry, onPatch }: { entry: DailyRecord; onPatch: (patch:
       setMessage(error.code === 1 ? '未获得定位权限，请允许浏览器定位，或手动填写地点。' : '暂时无法获取位置，请重试或手动填写地点。')
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 })
   }
-  return <div className="py-3.5 border-b border-[var(--c-soft)]">
-    <p className="text-[12px] text-[var(--c-ink-faint)] mb-3">这杯咖啡从哪里来</p>
-    <div className="flex gap-3 pb-2">
-      {(['home', 'outside'] as const).map(source => <button key={source} type="button" aria-pressed={(entry.source ?? 'home') === source}
-        onClick={() => {
-          request.current++
-          clearSearch()
-          setLocating(false)
-          setMessage('')
-          onPatch({ source })
+  return <div className="bl-record-folder">
+    <div className="bl-record-index" role="tablist" aria-label="咖啡记录来源">
+      {sources.map((source, index) => <button key={source} type="button" role="tab"
+        id={`${folderId}-${source}`} aria-selected={activeSource === source}
+        aria-controls={`${folderId}-sheet`} tabIndex={activeSource === source ? 0 : -1}
+        onClick={() => changeSource(source)}
+        onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+          event.preventDefault()
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : (index + 1) % sources.length
+          changeSource(sources[next])
+          event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus()
         }}
-        className={`px-4 py-2 rounded-full text-[13px] ${(entry.source ?? 'home') === source ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'bg-[var(--c-soft)] text-[var(--c-soft-ink)]'}`}>
-        {source === 'home' ? '自己做' : '外面买'}
+        className="bl-record-tab">
+        <span className="bl-record-tab-number" aria-hidden="true">0{index + 1}</span>
+        <span>{source === 'home' ? '自己做' : '外面喝'}</span>
       </button>)}
     </div>
-    {entry.source === 'outside' && <>
+    <div ref={sheetRef} id={`${folderId}-sheet`} className="bl-record-sheet" role="tabpanel" aria-labelledby={`${folderId}-${activeSource}`} tabIndex={0}>
+    <div key={activeSource} className="bl-record-page-content" data-source={activeSource}>
+    {entry.source === 'outside' && <div className="pt-1 pb-3.5 border-b border-[var(--c-soft)]">
     <label className="block mt-3 text-[12px] text-[var(--c-ink-faint)]">地点
       <input value={entry.locationName ?? ''} onChange={e => onPatch({ locationName: e.target.value })}
         placeholder="咖啡店名称或地址"
@@ -691,6 +724,9 @@ function DrinkContext({ entry, onPatch }: { entry: DailyRecord; onPatch: (patch:
     <p className="mt-2 text-[10.5px] text-[var(--c-ink-faint)]">搜索需联网，定位坐标会发送给地图服务。店铺数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">OpenStreetMap</a>，可能不完整。</p>
     {entry.location && <p className="mt-2 text-[11.5px] text-[var(--c-ink-faint)] break-words">{entry.location.latitude.toFixed(5)}, {entry.location.longitude.toFixed(5)}{entry.location.accuracy !== undefined ? ` · 精度约 ${Math.round(entry.location.accuracy)} 米` : ''}</p>}
     {message && <p role="status" className="mt-2 text-[11.5px] text-[var(--c-ink-faint)]">{message}</p>}
-    </>}
+    </div>}
+    {children}
+    </div>
+    </div>
   </div>
 }
