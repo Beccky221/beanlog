@@ -1,8 +1,8 @@
 {
-  "name": "beanlog",
+  "name": "coffee-lab",
   "private": true,
   "version": "2.0.0",
-  "description": "豆袋小记 - 咖啡豆记录 PWA",
+  "description": "咖啡实验室 - 我的咖啡收藏与饮用档案",
   "type": "module",
   "scripts": {
     "dev": "vite",

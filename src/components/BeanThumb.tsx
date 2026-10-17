@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Bean } from '@/types/bean'
 import { bagImage } from '@/lib/bagImage'
+import { placeholderBrand } from '@/lib/brand'
 import { usePhotoUrl } from '@/lib/usePhoto'
 
 interface BeanThumbProps {
@@ -22,7 +23,7 @@ export function BeanThumb({ bean, className, alt }: BeanThumbProps) {
       bagImage({
         color: bean.placeholder?.color ?? '#8A4B2A',
         label: bean.placeholder?.label ?? '新豆袋',
-        sub: bean.placeholder?.sub ?? 'BEANLOG',
+        sub: placeholderBrand(bean.placeholder?.sub),
       }),
     [bean.placeholder?.color, bean.placeholder?.label, bean.placeholder?.sub],
   )

@@ -6,7 +6,7 @@
  * 所以离线安装能力只在用 http(s) 打开时才有。
  *
  * 用法：npm run build:single
- * 产物：single/豆袋小记.html
+ * 产物：single/咖啡实验室.html
  */
 import { readFile, writeFile, mkdir, readdir, cp } from 'node:fs/promises'
 import path from 'node:path'
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(root, 'docs')
 const out = path.join(root, 'single')
-const OUT_NAME = '豆袋小记.html'
+const OUT_NAME = '咖啡实验室.html'
 
 function formatBytes(n) {
   return n < 1024 * 1024 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1024 / 1024).toFixed(2)} MB`
@@ -81,10 +81,12 @@ async function main() {
   html = await inlineScript(html)
   html = await inlineIcon(html)
   html = await inlineManifest(html)
+  const fontLicense = await readFile(path.join(dist, 'font-licenses/PatrickHand-OFL.txt'), 'utf8')
+  html = replaceOnce(html, '</head>', `<!-- Patrick Hand font license\n${fontLicense}\n-->\n</head>`)
   html = replaceOnce(
     html,
-    '<title>豆袋小记</title>',
-    '<title>豆袋小记</title>\n    <!-- 单文件版：JS/CSS/图标已全部内联，可直接双击打开 -->',
+    '<title>咖啡实验室</title>',
+    '<title>咖啡实验室</title>\n    <!-- 单文件版：JS/CSS/图标已全部内联，可直接双击打开 -->',
   )
 
   await mkdir(out, { recursive: true })

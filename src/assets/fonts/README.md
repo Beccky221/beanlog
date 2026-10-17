@@ -1,5 +1,20 @@
 # Handwritten typeface
 
+## English handwriting
+
+Patrick Hand Regular, by Patrick Wagesreiter. Distributed under SIL Open Font
+License 1.1; see PatrickHand-OFL.txt.
+Official source: https://github.com/google/fonts/tree/main/ofl/patrickhand
+Google Fonts download: https://fonts.gstatic.com/s/patrickhand/v25/LDI1apSQOAYtSuYWp8ZhfYeMWQ.ttf
+The original font is packaged as WOFF2 without changing its glyphs or names.
+
+Used for Latin letters throughout the interface, form controls, bag placeholders
+and exported posters. CSS unicode ranges preserve the existing Chinese and
+numeric glyphs. The font is bundled locally, including in the single-file HTML
+and placeholder SVG, so display does not require a network font request.
+
+## Chinese handwriting
+
 LXGW WenKai Regular (v1.311), by lxgw, based on Klee One.
 Distributed under SIL Open Font License 1.1; see OFL.txt.
 

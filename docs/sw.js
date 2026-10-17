@@ -1,11 +1,11 @@
-/* 豆袋小记离线缓存
+/* 咖啡实验室离线缓存
    - 页面导航：网络优先，离线时回退缓存
    - 静态资源（JS/CSS/图标）：缓存优先
    改动静态资源后记得把 CACHE 版本号 +1，否则老用户会继续用缓存的旧文件。 */
-const CACHE = 'beanlog-v16'
+const CACHE = 'beanlog-v21'
 const ENTRY = './index.html'
 /** 安装时预缓存，保证断网也能打开 */
-const PRECACHE = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./icon.png","./apple-touch-icon-handpaint-v2.png","./app-icon-handpaint-v2-192.png","./app-icon-handpaint-v2-512.png","./app-icon-handpaint-v2-maskable.png","./manifest-handpaint-v2.webmanifest","./assets/index-D1D3MgM9.js","./assets/index-xj-5-aDx.css","./assets/BeanlogJournalTitle-YvNYUQGi.woff2","./assets/LXGWWenKai-Regular-opG5z_Xo.woff2"]
+const PRECACHE = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./icon.png","./apple-touch-icon-handpaint-v2.png","./app-icon-handpaint-v2-192.png","./app-icon-handpaint-v2-512.png","./app-icon-handpaint-v2-maskable.png","./manifest-handpaint-v2.webmanifest","./assets/index-CjM04ROH.js","./assets/index-BlkduAhI.css","./assets/BeanlogJournalTitle-YvNYUQGi.woff2","./assets/LXGWWenKai-Regular-opG5z_Xo.woff2","./assets/PatrickHand-Regular-C85eJ9ad.woff2"]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

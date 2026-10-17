@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
+/* 英文使用清楚的分笔手写体；数字和中文仍由原字体负责，便于读取参数。 */
+@font-face {
+  font-family: 'Patrick Hand';
+  src: url('./assets/fonts/PatrickHand-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0041-005A, U+0061-007A, U+00C0-024F, U+1E00-1EFF;
+}
+
 /* 霞鹜文楷：柔和的手写笔触，字体随应用保存，不依赖在线字体服务。 */
 @font-face {
   font-family: 'LXGW WenKai';
@@ -11,12 +23,13 @@
   font-display: swap;
 }
 :root {
-  --font-handwritten: 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', cursive;
+  --font-english-handwritten: 'Patrick Hand';
+  --font-handwritten: var(--font-english-handwritten), 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', cursive;
 }
 
 
 /* ==========================================================================
-   豆袋小记 —— 主题色板
+   咖啡实验室 —— 主题色板
    --------------------------------------------------------------------------
    所有界面颜色都走这一层 CSS 变量，切换主题只需要改 <html data-theme="...">。
    绿色 = 原来的配色；米色 = 参考稿的纸感配色。
@@ -424,11 +437,11 @@ body{background:var(--bl-outer);color:var(--bl-ink)}
 .bl-theme-sample{box-shadow:inset 1px 1px 3px #00000010,inset -1px -1px 2px #ffffff70}
 .bl-theme-check{box-shadow:1px 2px 4px #00000018,inset 1px 1px 1px #ffffff50}
 /* Floating navigation and its selected icon use the same molded surface. */
-#root nav>div{background:var(--bl-relief-face);border-color:#ffffff45;box-shadow:7px 7px 18px var(--bl-relief-shadow),-5px -5px 14px var(--bl-relief-light)}
-#root nav button>span:first-child{background:var(--bl-relief-face);box-shadow:3px 3px 6px var(--bl-relief-shadow),-3px -3px 6px var(--bl-relief-light);transition:box-shadow .18s ease,transform .18s ease}
-#root nav button>span[class*="bg-[var(--c-primary)]"]{box-shadow:var(--bl-relief-pressed)}
-#root nav button>span[class*="bg-[var(--c-primary)]"] svg{color:var(--bl-accent)}
-#root nav button:active>span:first-child{box-shadow:var(--bl-relief-pressed);transform:translateY(1px)}
+#root .tab-bar>div{background:var(--bl-relief-face);border-color:#ffffff45;box-shadow:7px 7px 18px var(--bl-relief-shadow),-5px -5px 14px var(--bl-relief-light)}
+#root .tab-bar button>span:first-child{background:var(--bl-relief-face);box-shadow:3px 3px 6px var(--bl-relief-shadow),-3px -3px 6px var(--bl-relief-light);transition:box-shadow .18s ease,transform .18s ease}
+#root .tab-bar button>span[class*="bg-[var(--c-primary)]"]{box-shadow:var(--bl-relief-pressed)}
+#root .tab-bar button>span[class*="bg-[var(--c-primary)]"] svg{color:var(--bl-accent)}
+#root .tab-bar button:active>span:first-child{box-shadow:var(--bl-relief-pressed);transform:translateY(1px)}
 /* Recessed fields balance the raised action buttons. */
 #root input:not(.bg-transparent):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),#root textarea,#root select{
  background-color:var(--bl-relief-face);border-color:transparent;box-shadow:inset 2px 2px 5px var(--bl-relief-shadow),inset -2px -2px 5px var(--bl-relief-light);
@@ -558,7 +571,7 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   font-weight: 400;
   font-display: swap;
 }
-:root { --font-title-handwritten: 'Beanlog Journal Title', var(--font-handwritten); }
+:root { --font-title-handwritten: var(--font-english-handwritten), 'Beanlog Journal Title', 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', cursive; }
 .bl-journal-title {
   font-family: var(--font-title-handwritten);
   font-size: 38px;
@@ -597,3 +610,228 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 }
 #root textarea.bl-identity-textarea::placeholder { color: var(--bl-muted); opacity: .7; }
 #root textarea.bl-identity-textarea:focus-visible { outline: 1px solid var(--bl-accent); outline-offset: 3px; }
+
+/* 豆库首页：窄屏双列错列看板，卡片高度随豆子信息自然变化。 */
+.bl-bean-board {
+  column-count: 2;
+  column-gap: 12px;
+  column-fill: balance;
+}
+.bl-bean-board-item {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 12px;
+  break-inside: avoid;
+  vertical-align: top;
+  box-shadow: 0 3px 12px rgb(var(--c-shadow) / .08) !important;
+  animation: bl-bean-card-arrive .42s cubic-bezier(.22,.61,.36,1) backwards;
+}
+@keyframes bl-bean-card-arrive {
+  from { opacity: 0; transform: translateY(18px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.bl-library-search-panel { animation: bl-library-search-open .2s ease-out both; }
+@keyframes bl-library-search-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.bl-bean-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--c-soft) 22%, var(--c-surface)), var(--c-surface) 60%);
+  border-radius: 16px 13px 17px 14px !important;
+  border-color: color-mix(in srgb, var(--c-primary) 16%, var(--c-line)) !important;
+  min-width: 0;
+}
+.bl-bean-thumb {
+  width: 100% !important;
+  height: 112px !important;
+  border-radius: 12px 10px 13px 11px !important;
+  border: 1px solid color-mix(in srgb, var(--c-primary) 10%, transparent);
+  background-color: var(--c-photo-well);
+  background-image: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c-surface) 60%, transparent), transparent 72%);
+}
+.bl-bean-card-copy { width: 100%; padding: 0 1px 2px; }
+.bl-bean-card-copy > div:first-child { display: block; }
+.bl-bean-card h3 { width: 100%; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; word-break: normal; }
+.bl-bean-card h3 + span { display: block; max-width: 100%; padding-top: 2px; text-align: left; font-size: 10.5px; opacity: .82; }
+.bl-bean-card p { font-size: 11.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.bl-bean-card p.line-clamp-1 { -webkit-line-clamp: 2; }
+.bl-bean-card .mt-2 { flex-wrap: wrap; }
+
+/* 竖排题签在左，内容沿右侧纸面展开。网格不建立定位容器，页中页仍铺满手机画面。 */
+.bl-vertical-page {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  padding-top: calc(2.5rem + var(--safe-t));
+  padding-left: 12px;
+  min-height: 100%;
+}
+.bl-vertical-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 5px;
+  padding-top: 3px;
+  color: var(--c-ink);
+}
+.bl-vertical-heading-eyebrow {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-family: var(--font-english-handwritten), var(--font-handwritten);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .06em;
+  line-height: 1;
+  color: var(--c-ink-faint);
+}
+.bl-vertical-heading h1 {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: .12em;
+  margin: 0;
+  font-weight: 400;
+}
+.bl-vertical-heading h1.bl-library-title { font-size: 48px; }
+#root .bl-vertical-heading-trigger {
+  display: block;
+  font: inherit;
+  writing-mode: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  color: inherit;
+}
+.bl-vertical-page-body { min-width: 0; }
+.bl-vertical-page-body > .px-6,
+.bl-vertical-page-body > .px-5 { padding-left: 12px; padding-right: 16px; }
+.bl-vertical-page-body > .bl-theme-section { margin-left: 12px; margin-right: 16px; }
+.bl-vertical-page-body .bl-profile-stats { gap: 8px; }
+.bl-profile-stats > div, .bl-profile-stats > button { padding: 12px; }
+@media (max-width: 360px) {
+  .bl-vertical-page { grid-template-columns: 44px minmax(0, 1fr); padding-left: 8px; }
+  .bl-vertical-heading { gap: 3px; }
+  .bl-vertical-heading h1 { font-size: 30px; }
+  .bl-vertical-heading h1.bl-library-title { font-size: 42px; }
+  .bl-vertical-heading-eyebrow { font-size: 9px; }
+  .bl-vertical-page-body > .px-6, .bl-vertical-page-body > .px-5 { padding-left: 8px; padding-right: 12px; }
+  .bl-vertical-page-body > .bl-theme-section { margin-left: 8px; margin-right: 12px; }
+  .bl-profile-stats > div, .bl-profile-stats > button { padding: 9px; }
+}
+@media (max-width: 360px) {
+  .bl-bean-board { column-gap: 9px; }
+  .bl-bean-card { padding: 8px !important; }
+  .bl-bean-thumb { height: 98px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bl-bean-board-item, .bl-library-search-panel { animation: none; }
+}
+
+/* 目录首页取代底部索引，四个章节从题签进入。 */
+.bl-directory-app { --nav-space: calc(2rem + var(--safe-b)); }
+.bl-directory-app .floating-action { bottom: calc(1.5rem + var(--safe-b)); }
+.bl-directory-app .bl-vertical-page { padding-top: calc(4.5rem + var(--safe-t)); }
+.bl-library-page { padding-top: calc(3.25rem + var(--safe-t)); }
+.bl-library-body { width: 100%; min-width: 0; }
+.bl-library-top {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-rows: minmax(90px, auto) auto;
+  column-gap: 12px;
+  row-gap: 12px;
+  align-items: end;
+}
+.bl-library-top.has-search { grid-template-rows: minmax(90px, auto) auto auto; }
+.bl-library-top > .bl-vertical-heading { grid-column: 1; grid-row: 1 / -1; align-self: end; }
+.bl-library-top > .bl-library-tools,
+.bl-library-top > .bl-library-search-panel,
+.bl-library-top > .bl-library-category { grid-column: 2; min-width: 0; }
+.bl-library-tools { display: flex; justify-content: flex-end; align-items: flex-end; gap: 10px; padding-bottom: 2px; }
+@media (max-width: 360px) {
+  .bl-library-top { grid-template-rows: minmax(77px, auto) auto; column-gap: 8px; }
+  .bl-library-top.has-search { grid-template-rows: minmax(77px, auto) auto auto; }
+}
+.bl-library-count { position: relative; padding: 0 10px 0 0; border-right: 1px solid var(--c-line); }
+.bl-library-count-caption { display: block; font-size: 10px; letter-spacing: .06em; color: var(--c-ink-faint); }
+.bl-library-count-value { display: flex; align-items: baseline; gap: 7px; margin-top: 3px; font-size: 33px; line-height: 1; font-variant-numeric: tabular-nums; color: var(--c-ink); }
+.bl-library-count-value > span { font-size: 11px; color: var(--c-ink-faint); }
+.bl-home-return {
+  position: absolute;
+  top: calc(14px + var(--safe-t));
+  left: 20px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 12px;
+  border: 1px solid var(--c-line);
+  border-radius: 24px;
+  background: var(--c-surface);
+  color: var(--c-ink-soft);
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgb(var(--c-shadow) / .06);
+}
+.bl-home-directory {
+  min-height: 100%;
+  padding: calc(42px + var(--safe-t)) 25px calc(26px + var(--safe-b));
+}
+.bl-home-intro > p { font-size: 11px; letter-spacing: .08em; color: var(--c-ink-faint); }
+.bl-home-intro > h1 { margin-top: 10px; font-size: 36px; }
+.bl-home-intro > span { display: block; margin-top: 10px; font-size: 12px; color: var(--c-ink-faint); }
+.bl-home-chapters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 30px;
+  padding-bottom: 16px;
+}
+#root .bl-home-chapter {
+  position: relative;
+  display: block;
+  height: 242px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--c-primary) 22%, var(--c-line));
+  border-radius: 12px 24px 12px 12px;
+  background: color-mix(in srgb, var(--c-surface) 88%, var(--c-soft));
+  color: var(--c-ink);
+  text-align: left;
+  box-shadow: 0 5px 16px rgb(var(--c-shadow) / .07);
+  transition: transform .2s ease, background-color .2s ease;
+}
+#root .bl-home-chapter:nth-child(even) { transform: translateY(16px); background: color-mix(in srgb, var(--c-surface) 66%, var(--c-soft)); }
+#root .bl-home-chapter:active { transform: translateY(2px); }
+#root .bl-home-chapter:nth-child(even):active { transform: translateY(18px); }
+.bl-home-chapter-index { position: absolute; left: 17px; top: 16px; font-size: 11px; letter-spacing: .15em; color: var(--c-ink-faint); }
+.bl-home-chapter-arrow { position: absolute; bottom: 18px; right: 16px; color: var(--c-primary); }
+.bl-home-chapter-title {
+  position: absolute;
+  right: 20px;
+  top: 24px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: 32px;
+  letter-spacing: .12em;
+  line-height: 1;
+}
+.bl-home-chapter-title.bl-library-title { font-size: 39px; }
+.bl-home-chapter-english { position: absolute; left: 18px; top: 46px; writing-mode: vertical-rl; font-family: var(--font-english-handwritten), var(--font-handwritten); font-size: 10px; font-weight: 400; letter-spacing: .06em; color: var(--c-ink-faint); }
+.bl-home-chapter-note { position: absolute; left: 17px; bottom: 18px; font-size: 10px; color: var(--c-ink-soft); }
+.bl-home-footer { margin-top: 26px; text-align: center; color: var(--c-ink-ghost); font-size: 10px; letter-spacing: .2em; }
+@media (max-width: 360px) {
+  .bl-home-directory { padding-left: 20px; padding-right: 20px; }
+  .bl-home-chapters { gap: 12px; }
+  .bl-home-chapter-title { right: 15px; font-size: 29px; }
+  .bl-home-chapter-note { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #root .bl-home-chapter { transition: none; }
+}

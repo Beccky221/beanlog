@@ -46,6 +46,6 @@ console.log(`已生成 docs/404.html（<base href="${base}">）与 docs/.nojekyl
 
 // Publish to both supported Pages sources and preserve a reusable source template.
 await writeFile(path.join(root, 'index.template.html'), template, 'utf8')
-for (const name of ['index.html','404.html','assets','icon.png','icon-192.png','icon-512.png','icon-maskable-512.png','manifest.webmanifest','manifest-handpaint-v2.webmanifest','apple-touch-icon-handpaint-v2.png','app-icon-handpaint-v2-192.png','app-icon-handpaint-v2-512.png','app-icon-handpaint-v2-maskable.png','sw.js','.nojekyll']) {
+for (const name of ['index.html','404.html','assets','icon.png','icon-192.png','icon-512.png','icon-maskable-512.png','manifest.webmanifest','manifest-handpaint-v2.webmanifest','apple-touch-icon-handpaint-v2.png','app-icon-handpaint-v2-192.png','app-icon-handpaint-v2-512.png','app-icon-handpaint-v2-maskable.png','sw.js','.nojekyll','font-licenses']) {
   await cp(path.join(docs,name),path.join(root,name),{recursive:true,force:true})
 }

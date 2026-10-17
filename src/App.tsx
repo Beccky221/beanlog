@@ -4,7 +4,8 @@
    （?action=new / ?action=daily）。两处在写入前都做了判断，不会造成级联渲染。 */
 import { useEffect, useRef, useState } from 'react'
 import { logoUrl } from '@/lib/logo'
-import { LayoutGrid, Images, UserRound, CalendarDays, AlertTriangle, X } from 'lucide-react'
+import { APP_NAME, APP_POSITIONING, APP_BRAND_EN } from '@/lib/brand'
+import { ArrowLeft, ArrowUpRight, AlertTriangle, X } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { useStore } from '@/lib/store'
 import { applyTheme, persistTheme, readStoredTheme, type ThemeName } from '@/lib/theme'
@@ -13,18 +14,44 @@ import { BeanDetail } from '@/sections/BeanDetail'
 import { PosterWall } from '@/sections/PosterWall'
 import { Profile } from '@/sections/Profile'
 import { DailyLog } from '@/sections/DailyLog'
+import { CoffeeRecommendations } from '@/sections/CoffeeRecommendations'
+import { RecommendationAccess } from '@/components/RecommendationAccess'
 
-type Tab = 'library' | 'daily' | 'wall' | 'profile'
+type Section = 'library' | 'daily' | 'recommendations' | 'profile'
+type Tab = 'home' | Section
 
-const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
-  { key: 'library', label: '豆库', icon: LayoutGrid },
-  { key: 'daily', label: '每日记录', icon: CalendarDays },
-  { key: 'wall', label: '豆袋墙', icon: Images },
-  { key: 'profile', label: '我的', icon: UserRound },
+const TABS: { key: Section; label: string; english: string; note: string }[] = [
+  { key: 'library', label: '豆库', english: 'BEAN ARCHIVE', note: '收好每一袋喜欢' },
+  { key: 'daily', label: '每日记录', english: 'DAILY JOURNAL', note: '记下一杯的日常' },
+  { key: 'recommendations', label: '找豆推荐', english: 'COFFEE DISCOVERY', note: '商品豆与烘焙商 · 邀请制' },
+  { key: 'profile', label: '我的', english: 'MY CORNER', note: '偏好与随身工具' },
 ]
 
-/** 标签顺序，用来判断切页滑动方向 */
-const VIEW_ORDER: Record<Tab, number> = { library: 0, daily: 1, wall: 2, profile: 3 }
+const VIEW_ORDER: Record<Tab, number> = { home: 0, library: 1, daily: 2, recommendations: 3, profile: 4 }
+
+function HomeDirectory({ onOpen }: { onOpen: (section: Section) => void }) {
+  return (
+    <main className="bl-home-directory">
+      <header className="bl-home-intro">
+        <p>{APP_BRAND_EN} · COFFEE FIELD NOTES</p>
+        <h1 className="bl-journal-title">{APP_NAME}</h1>
+        <span>{APP_POSITIONING}</span>
+      </header>
+      <nav className="bl-home-chapters" aria-label="选择板块">
+        {TABS.map(({ key, label, english, note }, index) => (
+          <button key={key} type="button" className="bl-home-chapter" aria-label={key === 'recommendations' ? '找一袋喜欢的豆，商品豆与烘焙商推荐，凭邀请码开启' : undefined} onClick={() => onOpen(key)}>
+            <span className="bl-home-chapter-index" aria-hidden>0{index + 1}</span>
+            <ArrowUpRight size={16} className="bl-home-chapter-arrow" aria-hidden />
+            <span className={`bl-home-chapter-title ${key === 'library' ? 'bl-library-title' : 'bl-journal-title'}`}>{label}</span>
+            <span className="bl-home-chapter-english">{english}</span>
+            <span className="bl-home-chapter-note">{note}</span>
+          </button>
+        ))}
+      </nav>
+      <p className="bl-home-footer">一袋一记 · 一杯一日</p>
+    </main>
+  )
+}
 
 function newBean(): Bean {
   return {
@@ -34,7 +61,7 @@ function newBean(): Bean {
     status: '未开袋',
     rating: 0,
     note: '',
-    placeholder: { color: '#8A4B2A', label: '新豆袋', sub: 'BEANLOG' },
+    placeholder: { color: '#8A4B2A', label: '新豆袋', sub: APP_BRAND_EN },
     trackOpenDate: false,
     repurchaseCount: 0,
     inRepurchase: false,
@@ -48,9 +75,14 @@ export default function App() {
   const { beans, grinders, dailyRecords } = store.data
 
   const [theme, setTheme] = useState<ThemeName>(() => readStoredTheme())
-  const [tab, setTab] = useState<Tab>('library')
+  const [tab, setTab] = useState<Tab>('home')
   const [draftBean, setDraftBean] = useState<Bean | null>(null)
   const [isNew, setIsNew] = useState(false)
+  const [wallOpen, setWallOpen] = useState(false)
+  const closeWall = () => {
+    setWallOpen(false)
+    requestAnimationFrame(() => document.getElementById('bean-library-wall')?.focus())
+  }
 
   // 主题写到 <html data-theme>，CSS 变量整体切换
   useEffect(() => {
@@ -116,11 +148,11 @@ export default function App() {
   // 主标签互切：缩放淡入；进出详情页（页中页）：按方向左右滑入。
   // 方向要看「上一个页面」，所以把上一次的下标存成 state：
   // 渲染时直接算类名（不留空档、不闪），effect 里只更新这个下标。
-  const viewIndex = detailOpen && draftBean ? TABS.length : VIEW_ORDER[tab]
+  const viewIndex = detailOpen && draftBean ? TABS.length + 1 : VIEW_ORDER[tab]
   const [lastViewIndex, setLastViewIndex] = useState(0)
   const slideClass = detailOpen
     ? 'page-enter-right'
-    : lastViewIndex >= TABS.length
+    : lastViewIndex > TABS.length
       ? 'page-enter-left'
       : 'page-enter-zoom'
   useEffect(() => {
@@ -135,7 +167,7 @@ export default function App() {
     const action = new URLSearchParams(window.location.search).get('action')
     if (!action) return
     if (action === 'daily') setTab('daily')
-    if (action === 'new') openNew()
+    if (action === 'new') { setTab('library'); openNew() }
     window.history.replaceState(null, '', window.location.pathname)
   }, [store.loading])
 
@@ -155,7 +187,7 @@ export default function App() {
   return (
     <div className="h-dvh bg-[var(--c-bg)] flex justify-center items-center sm:py-6">
       {/* 手机容器 */}
-      <div className="w-full max-w-[430px] h-full sm:h-[calc(100dvh-3rem)] sm:max-h-[900px] bg-[var(--c-app)] relative sm:rounded-[2.4rem] sm:shadow-[0_30px_80px_rgb(var(--c-shadow)/0.28)] sm:border sm:border-[var(--c-border)] overflow-hidden">
+      <div className="bl-directory-app w-full max-w-[430px] h-full sm:h-[calc(100dvh-3rem)] sm:max-h-[900px] bg-[var(--c-app)] relative sm:rounded-[2.4rem] sm:shadow-[0_30px_80px_rgb(var(--c-shadow)/0.28)] sm:border sm:border-[var(--c-border)] overflow-hidden">
         {/* 存储告警：写入失败（多半是空间满了）时出现，避免静默丢数据 */}
         {store.warning && (
           <div className="absolute top-0 inset-x-0 z-40 px-4 pt-[calc(0.75rem+var(--safe-t))]">
@@ -177,6 +209,7 @@ export default function App() {
         <div
           key={detailOpen && draftBean ? `detail-${draftBean.id}` : tab}
           className={`page-scroll h-full overflow-y-auto ${slideClass}`}
+          inert={wallOpen}
         >
           {detailOpen && draftBean ? (
             <BeanDetail
@@ -191,6 +224,8 @@ export default function App() {
             />
           ) : (
             <>
+              {tab === 'home' && <HomeDirectory onOpen={setTab} />}
+              {tab !== 'home' && tab !== 'recommendations' && <button type="button" className="bl-home-return" onClick={() => setTab('home')}><ArrowLeft size={15} aria-hidden />首页</button>}
               {tab === 'library' && (
                 <BeanLibrary
                   beans={beans}
@@ -198,6 +233,7 @@ export default function App() {
                   onOpen={openDetail}
                   onAdd={openNew}
                   onDelete={deleteFromLibrary}
+                  onOpenWall={() => setWallOpen(true)}
                 />
               )}
               {tab === 'daily' && (
@@ -208,7 +244,11 @@ export default function App() {
                   onDropPhotos={store.dropPhotos}
                 />
               )}
-              {tab === 'wall' && <PosterWall beans={beans} onBack={() => setTab('library')} />}
+              {tab === 'recommendations' && (
+                <RecommendationAccess onBack={() => setTab('home')}>
+                  {(connection, lock) => <CoffeeRecommendations beans={beans} value={store.data.recommendations} onChange={store.setRecommendations} onBack={() => setTab('home')} connection={connection} onAccessExpired={lock} />}
+                </RecommendationAccess>
+              )}
               {tab === 'profile' && (
                 <Profile
                   beans={beans}
@@ -228,48 +268,15 @@ export default function App() {
                 />
               )}
 
-              {/* 底部标签栏 */}
-              <nav className="tab-bar">
-                <div className="bg-[var(--c-surface)]/85 backdrop-blur rounded-full shadow-[0_10px_30px_rgb(var(--c-shadow)/0.18)] border border-[var(--c-border)] px-3 py-2 flex gap-1">
-                  {TABS.map(({ key, label, icon: Icon }) => {
-                    const active = tab === key
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setTab(key)}
-                        aria-current={active ? 'page' : undefined}
-                        className="flex flex-col items-center w-[64px] py-1 group"
-                      >
-                        <span
-                          className={`w-10 h-8 rounded-full flex items-center justify-center transition-colors ${
-                            active ? 'bg-[var(--c-primary)]' : 'bg-transparent'
-                          }`}
-                        >
-                          <Icon
-                            size={18}
-                            className={
-                              active ? 'text-[var(--c-primary-ink)]' : 'text-[var(--c-ink-soft)]'
-                            }
-                          />
-                        </span>
-                        <span
-                          className={`text-[10.5px] mt-0.5 ${
-                            active
-                              ? 'text-[var(--c-ink)] font-semibold'
-                              : 'text-[var(--c-ink-faint)]'
-                          }`}
-                        >
-                          {label}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </nav>
+
             </>
           )}
         </div>
+        {wallOpen && (
+          <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter" role="dialog" aria-modal="true" aria-label="豆库展示墙" onKeyDown={(event) => { if (event.key === 'Escape') closeWall() }}>
+            <PosterWall beans={beans} onBack={closeWall} />
+          </div>
+        )}
       </div>
     </div>
   )

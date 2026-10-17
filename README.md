@@ -1,9 +1,11 @@
-# 豆袋小记 · beanlog
+# 咖啡实验室 · COFFEE LAB
 
-留住每一袋的名字，也留住喜欢的理由。
+**我的咖啡收藏与饮用档案。** 整体风格靠近清爽的咖啡实验室。
 
-一个纯前端的咖啡豆记录应用：拍下豆袋、记下烘焙度和研磨刻度、写下喝过之后的感受，
-做成一张可以分享的收藏海报。数据全部存在你自己的设备上，不上传任何服务器。
+管理与收藏豆子，记录便于复现的冲煮参数，也留下每天这一杯的味道与感受。
+产品方向与后续修订原则见 [产品定位与设计方向](./产品定位与设计方向.md)；改名发布步骤见 [线上改名操作说明](./线上改名操作说明.md)。
+
+档案和照片保存在自己的设备上。主动使用千问识图时会发送所选图片；使用附近咖啡馆搜索时会发送定位坐标；使用千问找豆时会发送所选偏好。这些服务不会自动上传整个豆库。
 
 **在线使用**：<https://beccky221.github.io/beanlog/>
 
@@ -16,10 +18,11 @@ iPhone / Android 用浏览器打开后「添加到主屏幕」，就会像一个
 
 | 页面 | 做什么 |
 | --- | --- |
-| **豆库** | 记录每一袋豆子：照片、烘焙度、饮用状态、研磨刻度、评分、笔记；搜索和按烘焙度筛选；左滑删除 |
-| **每日记录** | 月历视图，每天可以记多条：咖啡照片、冲煮参数（意式 / 手冲 / 冷萃）、一句札记 |
-| **豆袋墙** | 把收藏的豆袋排成一张 1080px 宽的海报，保存到相册或分享 |
-| **我的** | 收藏统计、值得回购 / 准备买清单、磨豆器档案管理、主题切换、数据管理 |
+| **豆库** | 收藏豆袋与照片，记录产区、品种、处理法、烘焙度、黑咖/奶咖风味、研磨刻度与感受；按烘焙度、产区、处理法或店铺筛选 |
+| **每日记录** | 月历视图，每天可以记多条；自己做时记参数，外面喝时记店铺与地点，配上照片或一句札记 |
+| **豆库 → 展示墙** | 把收藏的豆袋排成一张 1080px 宽的海报，保存到相册或分享 |
+| **首页 → 找豆推荐** | 凭邀请码进入商品豆与烘焙商推荐，按个人偏好寻找下一袋 |
+| **我的** | 收藏统计、值得回购 / 准备买清单、磨豆器管理、主题切换、识图设置与数据管理 |
 
 ## 数据是怎么存的
 
@@ -53,7 +56,7 @@ iPhone / Android 用浏览器打开后「添加到主屏幕」，就会像一个
 
 ## 技术栈
 
-React 19 + TypeScript + Vite 7 + Tailwind CSS 3，无后端、无第三方请求。
+React 19 + TypeScript + Vite 7 + Tailwind CSS 3。核心档案使用本机存储；千问识图、商品豆推荐通过独立后端调用外部服务，模型密钥只放在后端。
 图标用 [lucide-react](https://lucide.dev/)。
 
 ```
@@ -62,6 +65,7 @@ src/
   sections/               四个标签页 + 回购清单
   components/             可复用组件（含数据管理面板、错误边界）
   lib/
+    brand.ts              展示名称、定位和英文落款
     idb.ts                IndexedDB 封装（kv 表 + photos 表）
     store.ts              应用状态、防抖写入、旧数据迁移
     backup.ts             导出 / 导入备份
@@ -74,6 +78,7 @@ src/
 ## 本地开发
 
 ```bash
+cp index.template.html index.html
 npm install
 npm run dev          # http://localhost:3000
 ```
@@ -82,7 +87,7 @@ npm run dev          # http://localhost:3000
 
 ```bash
 npm run build        # 构建到 docs/（GitHub Pages 的发布目录）
-npm run build:single # 额外产出一个可双击打开的单文件 HTML（single/豆袋小记.html）
+npm run build:single # 额外产出一个可双击打开的单文件 HTML（single/咖啡实验室.html）
 npm run typecheck    # TypeScript 检查
 npm run lint         # ESLint
 npm run e2e          # 用 headless Chrome 逐屏截图（需要先 npm run preview）
@@ -108,6 +113,7 @@ npm run test:v1      # 旧版备份导入测试：内联照片是否正确转进
 | `docs/` | 标准输出目录，如果你想改用 GitHub Actions 或把发布源设成 `/docs`，用它 |
 
 ```bash
+cp index.template.html index.html
 npm run build
 git add -A && git commit -m "更新构建产物" && git push
 ```
@@ -127,12 +133,16 @@ git add -A && git commit -m "更新构建产物" && git push
 
 ## 单文件版
 
-`npm run build:single` 会产出 `single/豆袋小记.html`（约 330KB，JS/CSS/图标全部内联），
+`npm run build:single` 会产出 `single/咖啡实验室.html`（包含字体、纹理等资源，实际大小以构建输出为准），
 可以直接双击打开或者发给别人。注意：
 
 - `file://` 下浏览器不允许注册 Service Worker，所以离线安装能力只在 http(s) 下才有；
 - 数据和在线版是各自独立的（不同来源，localStorage / IndexedDB 不互通），
   需要搬数据的话用「我的 → 数据管理」导出再导入。
+
+## 名称与旧数据兼容
+
+APP 名称已统一为“咖啡实验室”。`beanlog` 仓库与站点路径、数据库名、存储键、备份格式标识、现有服务地址仍沿用旧技术标识，确保原档案和已部署服务继续使用。旧格式备份仍可导入；新备份文件名使用新名称。
 
 ## 兼容性
 

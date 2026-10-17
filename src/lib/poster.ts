@@ -2,9 +2,10 @@ import type { Bean } from '@/types/bean'
 import { getPhoto } from '@/lib/idb'
 import { blobToDataUrl } from '@/lib/image'
 import { bagImage } from '@/lib/bagImage'
+import { APP_BRAND_EN, placeholderBrand } from '@/lib/brand'
 import { cssVar } from '@/lib/theme'
 
-const SERIF = `'LXGW WenKai','Kaiti SC','STKaiti','KaiTi',cursive`
+const SERIF = `'Patrick Hand','LXGW WenKai','Kaiti SC','STKaiti','KaiTi',cursive`
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -38,7 +39,7 @@ async function resolveBeanImage(bean: Bean): Promise<string> {
   return bagImage({
     color: bean.placeholder?.color ?? '#8A4B2A',
     label: bean.placeholder?.label ?? (bean.name.slice(0, 4) || '咖啡豆'),
-    sub: bean.placeholder?.sub ?? 'BEANLOG',
+    sub: placeholderBrand(bean.placeholder?.sub),
   })
 }
 
@@ -85,7 +86,10 @@ function drawContain(
  */
 export async function renderPoster(beans: Bean[]): Promise<string> {
   // 等字体准备好再绘制，确保保存的海报和界面使用同样的手写字体。
-  await document.fonts.load('400 22px "LXGW WenKai"')
+  await Promise.all([
+    document.fonts.load('400 22px "LXGW WenKai"'),
+    document.fonts.load('400 22px "Patrick Hand"', 'COFFEE LAB'),
+  ])
   const shown = beans.slice(0, 9)
   const cols = 3
   const rows = Math.max(1, Math.ceil(shown.length / cols))
@@ -121,7 +125,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
   ctx.textBaseline = 'alphabetic'
   const headerY = 96
   ctx.letterSpacing = '6px'
-  ctx.fillText('BEANLOG / COFFEE MEMORIES', margin, headerY)
+  ctx.fillText(`${APP_BRAND_EN} / COFFEE MEMORIES`, margin, headerY)
   const bagsText = `${String(shown.length).padStart(2, '0')} BAGS`
   ctx.letterSpacing = '4px'
   const bw = ctx.measureText(bagsText).width
@@ -180,7 +184,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
 
   ctx.letterSpacing = '5px'
   ctx.font = `500 20px ${SERIF}`
-  const brand = 'BEANLOG'
+  const brand = APP_BRAND_EN
   const brandW = ctx.measureText(brand).width
   ctx.fillText(brand, W - margin - brandW - 30, footY)
   ctx.letterSpacing = '0px'

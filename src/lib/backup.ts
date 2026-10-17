@@ -1,3 +1,4 @@
+import { APP_NAME } from '@/lib/brand'
 import { normalizeRecommendationState } from '@/lib/recommendations'
 import type { AppData } from '@/lib/store'
 import type { Bean, DailyRecord } from '@/types/bean'
@@ -66,7 +67,7 @@ export async function buildBackup(data: AppData): Promise<BackupFile> {
   return {
     schema: BACKUP_SCHEMA,
     version: BACKUP_VERSION,
-    app: '豆袋小记',
+    app: APP_NAME,
     exportedAt: new Date().toISOString(),
     counts: {
       beans: data.beans.length,
@@ -106,7 +107,7 @@ export function parseBackup(text: string): BackupFile {
   try {
     parsed = JSON.parse(text)
   } catch {
-    throw new Error('这个文件不是有效的 JSON，可能不是豆袋小记的备份')
+    throw new Error('这个文件不是有效的 JSON，可能不是咖啡实验室的备份')
   }
   const obj = parsed as Record<string, unknown>
   if (!obj || obj.schema !== BACKUP_SCHEMA) {
@@ -261,7 +262,7 @@ export function downloadText(text: string, filename: string, mime = 'application
 export function backupFileName(): string {
   const d = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `豆袋小记-备份-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`
+  return `${APP_NAME}-备份-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`
 }
 
 /** 读取用户选的文件内容 */

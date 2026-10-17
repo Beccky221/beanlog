@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Download, Share2 } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { renderPoster, downloadDataUrl } from '@/lib/poster'
+import { JournalHeading } from '@/components/JournalHeading'
 
 interface PosterWallProps {
   beans: Bean[]
@@ -53,18 +54,20 @@ export function PosterWall({ beans, onBack }: PosterWallProps) {
   }
 
   return (
-    <div className="list-bottom-space">
+    <div className="list-bottom-space bl-vertical-page">
+      <JournalHeading title="展示墙" eyebrow="MY COFFEE COLLECTION" />
+      <div className="bl-vertical-page-body">
       {/* 顶栏 */}
-      <div className="px-5 pt-[calc(1.5rem+var(--safe-t))] flex items-center justify-between">
+      <div className="px-5 flex items-center justify-between">
         <button
+          autoFocus
           type="button"
           onClick={onBack}
           className="px-4 h-10 rounded-full bg-white shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.1)] text-[13.5px] text-[var(--c-ink)] active:scale-95 transition-transform"
         >
-          返回调整
+          返回豆库
         </button>
-        <h2 className="bl-journal-title bl-journal-title-compact text-[16px] font-semibold text-[var(--c-ink)]">海报预览</h2>
-        <span className="w-[76px]" />
+        <span className="text-[12px] text-[var(--c-ink-faint)]">海报预览</span>
       </div>
 
       <p className="text-center text-[13px] text-[var(--c-ink-faint)] mt-4">
@@ -103,6 +106,7 @@ export function PosterWall({ beans, onBack }: PosterWallProps) {
         >
           <Share2 size={16} /> 分享海报
         </button>
+      </div>
       </div>
     </div>
   )

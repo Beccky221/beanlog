@@ -48,7 +48,7 @@ export function RecommendationAccess({ onBack, children }: { onBack: () => void;
   if (session) return children(session, lock)
   return <div className="min-h-full pb-12">
     <header className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center gap-3 bg-[var(--c-app)]/95 backdrop-blur">
-      <button type="button" onClick={onBack} aria-label="返回我的" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
+      <button type="button" onClick={onBack} aria-label="返回首页" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
       <h2 className="text-[17px] text-[var(--c-ink)]">找一袋喜欢的豆</h2>
     </header>
     <div className="px-6 pt-8">

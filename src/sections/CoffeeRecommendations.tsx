@@ -81,12 +81,12 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack, connecti
   }
   return <div className="min-h-full pb-12">
     <header className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center justify-between bg-[var(--c-app)]/95 backdrop-blur">
-      <button type="button" onClick={onBack} aria-label="返回我的" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
+      <button type="button" onClick={onBack} aria-label="返回首页" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
       <h2 className="text-[17px] text-[var(--c-ink)]">找一袋喜欢的豆</h2>
       <button type="button" onClick={onAccessExpired} aria-label="更换邀请码" title="更换邀请码" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink-soft)]"><LockKeyhole size={18} /></button>
     </header>
     <div className="px-5">
-      <p className="mt-3 text-[12px] leading-relaxed text-[var(--c-ink-faint)]">把偏好告诉豆袋小记，从真实商品资料中寻找下一袋。价格和库存以店铺页面为准。</p>
+      <p className="mt-3 text-[12px] leading-relaxed text-[var(--c-ink-faint)]">把偏好告诉咖啡实验室，从真实商品资料中寻找下一袋。价格和库存以店铺页面为准。</p>
       <section className="mt-4 rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-4">
         <button type="button" onClick={() => setPreferencesOpen(open => !open)} aria-expanded={preferencesOpen} className="w-full flex justify-between text-[15px] text-[var(--c-ink)]"><span>我的咖啡偏好</span><span>{preferencesOpen ? '−' : '＋'}</span></button>
         {preferencesOpen && <>

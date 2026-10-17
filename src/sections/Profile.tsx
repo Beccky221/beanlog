@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Coffee, Heart, Bookmark, ChevronRight, Palette, Sparkles, LockKeyhole } from 'lucide-react'
+import { Coffee, Heart, Bookmark, ChevronRight, Palette } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
 import type { Store } from '@/lib/store'
 import { THEMES, type ThemeName } from '@/lib/theme'
-import { CoffeeRecommendations } from '@/sections/CoffeeRecommendations'
 import { GrinderManager } from '@/sections/GrinderManager'
 import { Repurchase, type ListKey } from '@/sections/Repurchase'
 import { DataPanel } from '@/components/DataPanel'
 import { VisionSettings } from '@/components/VisionSettings'
-import { RecommendationAccess } from '@/components/RecommendationAccess'
-import { useScrollToTop } from '@/lib/useScrollToTop'
+import { JournalHeading } from '@/components/JournalHeading'
+import { APP_NAME, APP_POSITIONING, APP_BRAND_EN } from '@/lib/brand'
 
 interface ProfileProps {
   beans: Bean[]
@@ -37,10 +36,8 @@ export function Profile({
   onUpdateGrinder,
   onRemoveGrinder,
 }: ProfileProps) {
-  const [recommendationsOpen, setRecommendationsOpen] = useState(false)
   const [themeOpen, setThemeOpen] = useState(false)
   const activeTheme = THEMES.find(t => t.id === theme)!
-  const scrollToTop = useScrollToTop()
   const [openList, setOpenList] = useState<ListKey | null>(null)
 
   const stats = useMemo(() => {
@@ -57,23 +54,12 @@ export function Profile({
   ]
 
   return (
-    <div className="list-bottom-space">
-      <header
-        className="px-6 pt-[calc(2.5rem+var(--safe-t))] pb-2 cursor-pointer select-none"
-        onClick={scrollToTop}
-        title="回到顶部"
-      >
-        <p className="text-[11px] tracking-[0.35em] text-[var(--c-ink-faint)] font-medium">BEANLOG</p>
-        <h1
-          className="bl-journal-title text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
-          style={{ fontFamily: "var(--font-title-handwritten)" }}
-        >
-          我的
-        </h1>
-      </header>
+    <div className="list-bottom-space bl-vertical-page">
+      <JournalHeading title="我的" eyebrow={APP_BRAND_EN} />
+      <div className="bl-vertical-page-body">
 
       {/* 统计：值得回购 / 准备买 可点开对应清单 */}
-      <div className="px-6 mt-5 grid grid-cols-3 gap-3">
+      <div className="bl-profile-stats px-6 grid grid-cols-3 gap-3">
         {items.map(({ icon: Icon, label, value, list }) =>
           list ? (
             <button
@@ -104,13 +90,6 @@ export function Profile({
         )}
       </div>
 
-      <div className="px-6 mt-5">
-        <button type="button" onClick={() => setRecommendationsOpen(true)} className="w-full rounded-2xl bg-[var(--c-surface)] border border-[var(--c-line)] p-4 flex items-center gap-3 text-left">
-          <span className="rounded-full p-3 text-[var(--c-accent)]"><Sparkles size={21} /></span>
-          <span className="min-w-0 flex-1"><span className="block text-[16px] text-[var(--c-ink)]">找一袋喜欢的豆</span><span className="block mt-1 text-[12px] text-[var(--c-ink-faint)] flex items-center gap-1.5"><LockKeyhole size={12} />凭邀请码开启 · 商品豆与烘焙商</span></span>
-          <ChevronRight size={17} className="text-[var(--c-ink-faint)]" />
-        </button>
-      </div>
       <section className="bl-theme-section">
         <button type="button" className="bl-theme-trigger" aria-expanded={themeOpen} aria-controls="bl-theme-options" onClick={() => setThemeOpen(!themeOpen)}>
           <span className="bl-theme-icon" aria-hidden><Palette size={20} /></span>
@@ -154,19 +133,15 @@ export function Profile({
             className="text-[18px] font-semibold"
             style={{ fontFamily: "var(--font-handwritten)" }}
           >
-            豆袋小记
+            {APP_NAME}
           </p>
           <p className="text-[12.5px] leading-relaxed mt-2 opacity-80">
-            留住每一袋的名字，也留住喜欢的理由。买到豆子拍下豆袋，喝过之后补一句感受，准备买豆时回来查一查——这袋，我是不是喝过？
+            {APP_POSITIONING}。收好喜欢的豆子，记录冲煮参数，也留下每一杯的味道与感受。
           </p>
         </div>
       </div>
 
-      {recommendationsOpen && <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter">
-        <RecommendationAccess onBack={() => setRecommendationsOpen(false)}>
-          {(connection, lock) => <CoffeeRecommendations beans={beans} value={store.data.recommendations} onChange={store.setRecommendations} onBack={() => setRecommendationsOpen(false)} connection={connection} onAccessExpired={lock} />}
-        </RecommendationAccess>
-      </div>}
+      </div>
       {/* 清单页中页：值得回购 / 准备买 */}
       {openList && (
         <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter">

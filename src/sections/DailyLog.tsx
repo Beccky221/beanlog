@@ -1,6 +1,6 @@
 import type { DailyRecord } from '@/types/bean'
 import { DailyRecords } from '@/components/DailyRecords'
-import { useScrollToTop } from '@/lib/useScrollToTop'
+import { JournalHeading } from '@/components/JournalHeading'
 
 interface DailyLogProps {
   records: DailyRecord[]
@@ -11,29 +11,15 @@ interface DailyLogProps {
 
 /** 每日记录标签页：月历 + 每天的照片、冲煮参数和札记 */
 export function DailyLog({ records, onChange, onSavePhoto, onDropPhotos }: DailyLogProps) {
-  const scrollToTop = useScrollToTop()
   const dayCount = new Set(records.map((r) => r.date)).size
 
   return (
-    <div className="list-bottom-space">
-      <header
-        className="px-6 pt-[calc(2.5rem+var(--safe-t))] pb-2 cursor-pointer select-none"
-        onClick={scrollToTop}
-        title="回到顶部"
-      >
-        <p className="text-[11px] tracking-[0.35em] text-[var(--c-ink-faint)] font-medium">
-          DAILY BREW JOURNAL
-        </p>
-        <h1
-          className="bl-journal-title text-[34px] leading-none font-bold text-[var(--c-ink)] mt-1.5"
-          style={{ fontFamily: "var(--font-title-handwritten)" }}
-        >
-          每日记录
-        </h1>
-        <p className="text-[12px] text-[var(--c-ink-ghost)] mt-1.5">
+    <div className="list-bottom-space bl-vertical-page">
+      <JournalHeading title="每日记录" eyebrow="DAILY BREW JOURNAL" />
+      <div className="bl-vertical-page-body">
+        <p className="px-5 text-[12px] text-[var(--c-ink-ghost)] pt-1">
           {dayCount > 0 ? `已在 ${dayCount} 天留下记录` : '今天喝了什么，记下来'}
         </p>
-      </header>
 
       <div className="px-5 mt-4">
         <DailyRecords
@@ -42,6 +28,7 @@ export function DailyLog({ records, onChange, onSavePhoto, onDropPhotos }: Daily
           onSavePhoto={onSavePhoto}
           onDropPhotos={onDropPhotos}
         />
+      </div>
       </div>
     </div>
   )

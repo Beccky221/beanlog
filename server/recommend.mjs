@@ -169,4 +169,4 @@ const server = http.createServer(async (req, res) => {
     send(200, { ...data, cached: false, remaining: remaining() })
   } catch (error) { send(502, { error: error.name === 'TimeoutError' ? '联网推荐超时，请稍后重试。' : error instanceof SyntaxError ? '偏好信息格式不正确。' : error.message || '推荐服务暂时不可用。' }) }
 })
-server.listen(port, host, () => console.log(`豆袋小记推荐服务已启动：http://${host}:${port}；千问${key ? '已配置' : '尚未配置'}；每日上限 ${limit} 次。`))
+server.listen(port, host, () => console.log(`咖啡实验室推荐服务已启动：http://${host}:${port}；千问${key ? '已配置' : '尚未配置'}；每日上限 ${limit} 次。`))

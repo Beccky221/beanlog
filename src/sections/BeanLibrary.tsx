@@ -2,12 +2,12 @@
    这里的 effect 是把「外部缓存/异步读到的值」同步进 state（照片地址、滑动位置、
    海报渲染结果），setState 都带了相同性判断，不会引起级联渲染。 */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Heart, Bookmark, Plus, Search, Trash2 } from 'lucide-react'
+import { Heart, Bookmark, Plus, Search, Trash2, X, Images } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
 import { Stars } from '@/components/Stars'
-import { useScrollToTop } from '@/lib/useScrollToTop'
+import { JournalHeading } from '@/components/JournalHeading'
 import { BeanThumb } from '@/components/BeanThumb'
 
 interface BeanLibraryProps {
@@ -16,11 +16,13 @@ interface BeanLibraryProps {
   onOpen: (id: string) => void
   onAdd: () => void
   onDelete: (id: string) => void
+  onOpenWall: () => void
 }
 
 const REVEAL = 76
 
 interface SwipeableItemProps {
+  entranceIndex: number
   open: boolean
   onOpenChange: (open: boolean) => void
   onTap: () => void
@@ -29,7 +31,7 @@ interface SwipeableItemProps {
 }
 
 /** 左滑露出删除按钮的卡片容器（iOS 邮件式） */
-function SwipeableItem({ open, onOpenChange, onTap, onDelete, children }: SwipeableItemProps) {
+function SwipeableItem({ entranceIndex, open, onOpenChange, onTap, onDelete, children }: SwipeableItemProps) {
   const [offset, setOffset] = useState(0)
   const [dragging, setDragging] = useState(false)
   const start = useRef<{ x: number; y: number; base: number; horiz: boolean } | null>(null)
@@ -93,7 +95,7 @@ function SwipeableItem({ open, onOpenChange, onTap, onDelete, children }: Swipea
   }
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-[0_4px_18px_rgb(var(--c-shadow) / 0.07)]">
+    <div style={{ animationDelay: `${Math.min(entranceIndex, 7) * 55}ms` }} className="bl-bean-board-item relative rounded-2xl overflow-hidden shadow-[0_4px_18px_rgb(var(--c-shadow) / 0.07)]">
       {/* 底层删除按钮 */}
       <button
         type="button"
@@ -121,9 +123,15 @@ function SwipeableItem({ open, onOpenChange, onTap, onDelete, children }: Swipea
   )
 }
 
-export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLibraryProps) {
-  const scrollToTop = useScrollToTop()
+export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWall }: BeanLibraryProps) {
   const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchButton = useRef<HTMLButtonElement>(null)
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setQuery('')
+    searchButton.current?.focus()
+  }
   const [category, setCategory] = useState<'all' | 'roastLevel' | 'origin' | 'processingMethod' | 'brand'>('all')
   const [filter, setFilter] = useState<string | null>(null)
   const categoryOptions = useMemo<string[]>(() => category === 'all' ? [] : category === 'roastLevel'
@@ -166,43 +174,54 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
   }
 
   return (
-    <div className="list-bottom-space">
-      {/* 页头（点标题回到顶部，桌面端比较顺手） */}
-      <header
-        className="px-6 pt-[calc(2.5rem+var(--safe-t))] pb-2 cursor-pointer select-none"
-        onClick={scrollToTop}
-        title="回到顶部"
-      >
-        <p className="text-[11px] tracking-[0.35em] text-[var(--c-ink-faint)] font-medium">
-          MY BEAN ARCHIVE
-        </p>
-        <div className="flex items-end justify-between mt-1.5">
-          <h1
-            className="bl-library-title text-[var(--c-ink)]"
-          >
-            豆库
-          </h1>
-          <span className="text-[13px] text-[var(--c-ink-faint)] pb-0.5">共 {beans.length} 袋</span>
-        </div>
-      </header>
+    <div className="list-bottom-space bl-library-page">
+      <div className="bl-library-body">
+        <div className={`bl-library-top px-6${searchOpen ? ' has-search' : ''}`}>
+          <JournalHeading title="豆库" eyebrow="MY BEAN ARCHIVE" library />
+          <div className="bl-library-tools">
+            <div className="bl-library-count" aria-label={`共收藏 ${beans.length} 袋豆子`}>
+              <span className="bl-library-count-caption" aria-hidden>COLLECTION</span>
+              <span className="bl-library-count-value" aria-hidden>{String(beans.length).padStart(2, '0')}<span>袋</span></span>
+            </div>
+            <button id="bean-library-wall" type="button" onClick={onOpenWall} aria-haspopup="dialog" className="bl-library-wall-toggle h-10 rounded-full bg-[var(--c-surface)] text-[var(--c-primary)] flex items-center justify-center gap-1.5 px-3 text-[12px] whitespace-nowrap">
+              <Images size={16} aria-hidden />展示墙
+            </button>
+            <button
+              ref={searchButton}
+              type="button"
+              aria-label={searchOpen ? '收起搜索' : '搜索豆库'}
+              aria-expanded={searchOpen}
+              aria-controls="bean-library-search"
+              onClick={(event) => {
+                event.stopPropagation()
+                if (searchOpen) closeSearch()
+                else setSearchOpen(true)
+              }}
+              className="bl-library-search-toggle w-10 h-10 rounded-full bg-[var(--c-surface)] text-[var(--c-primary)] flex items-center justify-center"
+            >
+              {searchOpen ? <X size={18} /> : <Search size={18} />}
+            </button>
+          </div>
 
       {/* 搜索 */}
-      <div className="px-6 mt-4">
-        <div className="flex items-center gap-2 bg-[var(--c-surface)]/80 border border-[var(--c-border)] rounded-full px-4 py-2.5 shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.05)]">
+      {searchOpen && <div id="bean-library-search" role="search" className="bl-library-search-panel">
+        <div className="flex items-center gap-2 bg-[var(--c-surface)]/80 border border-[var(--c-border)] rounded-xl px-3 py-2 shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.05)]">
           <Search size={16} className="text-[var(--c-ink-ghost)] shrink-0" />
           <input
+            autoFocus
+            aria-label="搜索豆名、品牌、品种、风味或笔记"
+            onKeyDown={(event) => { if (event.key === 'Escape') closeSearch() }}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜豆名、品牌、品种、风味或笔记"
+            placeholder="搜索豆库…"
             className="bg-transparent outline-none text-[14px] w-full placeholder:text-[var(--c-placeholder)] text-[var(--c-ink)]"
           />
         </div>
-      </div>
+      </div>}
 
       {/* 分类维度与筛选标签 */}
-      <div className="px-6 mt-4 flex items-center justify-between gap-3">
-        <label htmlFor="bean-category" className="text-[12px] text-[var(--c-ink-faint)]">分类方式</label>
-        <select id="bean-category" value={category} onChange={(e) => {
+      <div className="bl-library-category flex items-center justify-end gap-3">
+        <select id="bean-category" aria-label="豆库分类方式" value={category} onChange={(e) => {
           setCategory(e.target.value as typeof category)
           setFilter(null)
           setOpenId(null)
@@ -213,6 +232,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
           <option value="processingMethod">按处理法</option>
           <option value="brand">店铺</option>
         </select>
+      </div>
       </div>
       {category !== 'all' && <div className="bl-roast-filter px-6 mt-3 flex gap-2 overflow-x-auto no-scrollbar">
         {categoryOptions.map((r) => (
@@ -233,10 +253,11 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
       </div>}
 
       {/* 豆袋列表 */}
-      <div className="px-6 mt-5 space-y-3.5">
-        {filtered.map((bean) => (
+      <div className="bl-bean-board px-6 mt-4">
+        {filtered.map((bean, index) => (
           <SwipeableItem
             key={bean.id}
+            entranceIndex={index}
             open={openId === bean.id}
             onOpenChange={(o) => setOpenId(o ? bean.id : null)}
             onTap={() => onOpen(bean.id)}
@@ -245,14 +266,14 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
               onDelete(bean.id)
             }}
           >
-            <div className="p-3.5 flex gap-3.5 border border-[var(--c-line)] rounded-2xl">
-              <div className="w-[76px] h-[96px] rounded-xl bg-[var(--c-photo-well)] overflow-hidden shrink-0 flex items-center justify-center">
+            <div className="bl-bean-card p-3.5 flex gap-3.5 border border-[var(--c-line)] rounded-2xl">
+              <div className="bl-bean-thumb w-[76px] h-[96px] rounded-xl bg-[var(--c-photo-well)] overflow-hidden shrink-0 flex items-center justify-center">
                 <BeanThumb
                   bean={bean}
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
-              <div className="min-w-0 flex-1 py-0.5 text-left">
+              <div className="bl-bean-card-copy min-w-0 flex-1 py-0.5 text-left">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="min-w-0 flex-1 text-[15px] font-semibold text-[var(--c-ink)] leading-snug break-all">
                     {bean.name}
@@ -298,6 +319,8 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete }: BeanLi
             <p className="text-[12px] mt-1">换个关键词，或者记下新的一袋</p>
           </div>
         )}
+      </div>
+
       </div>
 
       {/* 新增 */}

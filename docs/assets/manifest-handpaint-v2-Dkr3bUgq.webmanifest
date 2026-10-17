@@ -1,0 +1,55 @@
+{
+  "name": "咖啡实验室",
+  "short_name": "咖啡实验室",
+  "description": "我的咖啡收藏与饮用档案",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#F2F0E4",
+  "theme_color": "#F2F0E4",
+  "categories": [
+    "food",
+    "lifestyle",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "./app-icon-handpaint-v2-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./app-icon-handpaint-v2-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./app-icon-handpaint-v2-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "记一袋新豆子",
+      "short_name": "记新豆",
+      "url": "./?action=new"
+    },
+    {
+      "name": "每日记录",
+      "short_name": "每日记录",
+      "url": "./?action=daily"
+    }
+  ]
+}
