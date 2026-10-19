@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Bookmark, ExternalLink, Search, LockKeyhole, Sparkles } from 'lucide-react'
+import { AnimatedTitle } from '@/components/AnimatedTitle'
 import type { Bean } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import type { CoffeePreferences, CoffeeProduct, RecommendationState } from '@/types/recommendation'
@@ -82,7 +83,7 @@ export function CoffeeRecommendations({ beans, value, onChange, onBack, connecti
   return <div className="min-h-full pb-12">
     <header className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center justify-between bg-[var(--c-app)]/95 backdrop-blur">
       <button type="button" onClick={onBack} aria-label="返回首页" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
-      <h2 className="text-[17px] text-[var(--c-ink)]">找一袋喜欢的豆</h2>
+      <h2 className="text-[17px] text-[var(--c-ink)]" aria-label="风味捕手"><AnimatedTitle text="风味捕手" /></h2>
       <button type="button" onClick={onAccessExpired} aria-label="更换邀请码" title="更换邀请码" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink-soft)]"><LockKeyhole size={18} /></button>
     </header>
     <div className="px-5">

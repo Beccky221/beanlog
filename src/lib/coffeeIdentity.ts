@@ -44,6 +44,18 @@ const VARIETIES = [
   { name: '黄波旁', pattern: /[黄黃]波旁|yellow\s+bourbon/i },
 ]
 
+/** 只替换已知植物品种，未知专名和编号保留原文。 */
+export function translateVariety(value: string): string {
+  const names: [RegExp, string][] = [
+    [/\bpink\s+bourbon\b/gi, '粉红波旁'], [/\byellow\s+bourbon\b/gi, '黄波旁'], [/\bred\s+bourbon\b/gi, '红波旁'],
+    [/\b(?:gesha|geisha)\b/gi, '瑰夏'], [/\bbourbon\b/gi, '波旁'], [/\btypica\b/gi, '铁皮卡'],
+    [/\bcaturra\b/gi, '卡杜拉'], [/\bcatuai\b/gi, '卡杜艾'], [/\bcatimor\b/gi, '卡蒂姆'],
+    [/\bpacamara\b/gi, '帕卡马拉'], [/\bpacas\b/gi, '帕卡斯'], [/\bheirloom\b/gi, '原生种'],
+    [/\blaurina\b/gi, '尖身波旁'], [/\bjava\b/gi, '爪哇'], [/\bnyasaland\b/gi, '尼亚萨兰（Nyasaland）'],
+  ]
+  return names.reduce((text, [pattern, name]) => text.includes(name) ? text : text.replace(pattern, name), value)
+}
+
 // 词表用于识别风味描述，不把「拼配」「意式」当作植物品种。
 const FLAVORS = [
   '罗马洋甘菊','洋甘菊','小青柑','黑巧克力','牛奶巧克力','白巧克力','巧克力',
@@ -60,7 +72,7 @@ const FLAVORS = [
   'honey','chocolate','cocoa','hazelnut','almond','nuts','vanilla','butter',
 ].sort((a, b) => b.length - a.length)
 
-const BRANDS = ['GRAND CRU', '艾思品', '皮爷咖啡', "Peet's", '分子咖啡', 'CODE BLACK', '小芒果咖啡', '星巴克', 'Seesaw', 'MANNER', 'M Stand', '三顿半', '永璞', '隅田川', '白鲸咖啡']
+const BRANDS = ['CUPPING FEELING', 'GRAND CRU', '艾思品', '皮爷咖啡', "Peet's", '分子咖啡', 'CODE BLACK', '小芒果咖啡', '星巴克', 'Seesaw', 'MANNER', 'M Stand', '三顿半', '永璞', '隅田川', '白鲸咖啡']
 
 function editDistance(a: string, b: string): number {
   const row = Array.from({ length: b.length + 1 }, (_, i) => i)
@@ -200,7 +212,10 @@ export function extractIdentity(raw: string, layout: OcrLine[] = []): ExtractedI
   }
 
   const compact = text.replace(/\s+/g, '')
-  const roastText = read('烘焙程度|烘焙度|烘焙|roast(?:\\s+level)?\\b').toLowerCase()
+  // 烘焙标签可以只写单字“浅”，且常与净含量挤在同一行。
+  const roastLabel = /(?:烘[焙培](?:程度|度)?|roast(?:\s+level)?)\s*[:：|｜-]?\s*(中\s*浅|中\s*深|浅|中|深|medium[ -]?light|light[ -]?medium|medium[ -]?dark|light|medium|dark)(?=\s|烘|度|净|淨|$|[，,;；])/i
+  const labeledRoast = [text, ...geometry.map(line => line.text)].map(value => roastLabel.exec(value)?.[1]).find(Boolean)
+  const roastText = (labeledRoast || read('烘焙程度|烘焙度|烘焙|roast(?:\\s+level)?\\b', value => /^(?:中浅|中深|浅|中|深|light|medium|dark)/i.test(value))).toLowerCase().replace(/(?<=[中浅深])\s+(?=[浅深])/g, '')
   const roastSource = `${roastText}\n${compact}`
   let roastLevel: RoastLevel | '' = ''
   if (/^(中深|medium[ -]?dark)$/.test(roastText) || /中深(?:度)?(?:烘焙|烘)|medium[ -]?dark(?:roast)?/i.test(roastSource)) roastLevel = '中深烘'
@@ -230,5 +245,16 @@ export function extractIdentity(raw: string, layout: OcrLine[] = []): ExtractedI
     const nearTop = candidates.filter(line => line.y <= top + .025).sort((a, b) => Number(b.candidate.known) - Number(a.candidate.known) || a.y - b.y || a.x - b.x)
     if (nearTop[0]) brand = nearTop[0].candidate.name
   }
-  return { brand, variety, flavor, milkFlavor, processingMethod, origin, roastLevel }
+  if (!brand) {
+    // 可读的英文标识可能位于底角，按相邻行重建，不凭图形猜品牌。
+    const logoLines = lines.map(line => line.trim())
+    for (let i = 0; i < logoLines.length; i++) {
+      if (!/^(?:COFFEE\s+)?ROASTERS?$/i.test(logoLines[i])) continue
+      const words = logoLines.slice(Math.max(0, i - 2), i)
+      if (words.length && words.every(line => /^[a-z][a-z &'.-]{1,35}$/i.test(line) && !MARKETING.test(line) && !VARIETIES.some(v => v.pattern.test(line)))) {
+        brand = words.join(' '); break
+      }
+    }
+  }
+  return { brand, variety: translateVariety(variety), flavor, milkFlavor, processingMethod, origin, roastLevel }
 }

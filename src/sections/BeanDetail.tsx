@@ -18,6 +18,8 @@ interface BeanDetailProps {
   onSave: (bean: Bean) => void
   onDelete: (id: string) => void
   onBack: () => void
+  /** 从每日记录打开时说明返回目的地 */
+  backLabel?: string
   /** 把处理好的照片写进 IndexedDB，返回照片 id */
   onSavePhoto: (blob: Blob, original?: Blob) => Promise<{ id: string; originalId?: string }>
   /** 放弃不再使用的照片（换图、取消新建时） */
@@ -45,6 +47,7 @@ export function BeanDetail({
   onSave,
   onDelete,
   onBack,
+  backLabel,
   onSavePhoto,
   onDropPhotos,
 }: BeanDetailProps) {
@@ -172,13 +175,15 @@ export function BeanDetail({
         <button
           type="button"
           onClick={handleBack}
-          aria-label="返回"
+          aria-label={backLabel ?? '返回'}
+          autoFocus={!!backLabel}
           className="w-10 h-10 rounded-full bg-white shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.1)] flex items-center justify-center text-[var(--c-ink)] active:scale-95 transition-transform"
         >
           <ChevronLeft size={20} />
         </button>
         <h2 className="text-[15px] font-semibold text-[var(--c-ink)]">
           {isNew ? '记一袋新豆子' : '豆袋'}
+          {backLabel && <span className="mt-0.5 block text-[10.5px] font-normal text-[var(--c-ink-faint)]">{backLabel}</span>}
         </h2>
         <button
           type="button"

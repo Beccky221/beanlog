@@ -267,10 +267,10 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
             }}
           >
             <div className="bl-bean-card p-3.5 flex gap-3.5 border border-[var(--c-line)] rounded-2xl">
-              <div className="bl-bean-thumb w-[76px] h-[96px] rounded-xl bg-[var(--c-photo-well)] overflow-hidden shrink-0 flex items-center justify-center">
+              <div className="bl-bean-thumb rounded-xl bg-[var(--c-photo-well)] overflow-hidden shrink-0 flex items-center justify-center">
                 <BeanThumb
                   bean={bean}
-                  className="max-w-full max-h-full object-contain"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className="bl-bean-card-copy min-w-0 flex-1 py-0.5 text-left">

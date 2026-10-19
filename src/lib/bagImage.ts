@@ -2,7 +2,7 @@
  * 生成一只风格化咖啡袋 SVG 占位图（dataURL）。
  * 没有真实照片时，让豆库和豆袋墙依然有「一袋一袋」的感觉。
  */
-import englishHandFont from '@/assets/fonts/PatrickHand-Regular.woff2?inline'
+import englishHandFont from '@/assets/fonts/SounsoQuality-Regular.woff2?inline'
 
 interface BagOptions {
   /** 袋身主色 */
@@ -58,12 +58,12 @@ export function bagImage(opts: BagOptions): string {
   const labelLines = lines
     .map(
       (ln, i) =>
-        `<text x="150" y="${textStartY + i * lineHeight}" text-anchor="middle" font-family="'Patrick Hand','Kaiti SC','STKaiti','KaiTi',cursive" font-size="24" font-weight="600" fill="${labelTextColor}">${escapeXml(ln)}</text>`
+        `<text x="150" y="${textStartY + i * lineHeight}" text-anchor="middle" font-family="'Sounso Quality','Kaiti SC','STKaiti','KaiTi',cursive" font-size="24" font-weight="600" fill="${labelTextColor}">${escapeXml(ln)}</text>`
     )
     .join('')
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400">
-  <style>@font-face{font-family:'Patrick Hand';src:url('${englishHandFont}') format('woff2');font-weight:400;unicode-range:U+0041-005A,U+0061-007A,U+00C0-024F,U+1E00-1EFF;}</style>
+  <style>@font-face{font-family:'Sounso Quality';src:url('${englishHandFont}') format('woff2');font-weight:400;unicode-range:U+0041-005A,U+0061-007A,U+00C0-024F,U+1E00-1EFF;}</style>
   <defs>
     <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="${edge}"/>
@@ -90,7 +90,7 @@ export function bagImage(opts: BagOptions): string {
   ${labelLines}
   ${
     sub
-      ? `<text x="150" y="256" text-anchor="middle" font-family="'Patrick Hand','Kaiti SC','STKaiti','KaiTi',cursive" font-size="11" letter-spacing="1.5" fill="${labelTextColor}" opacity="0.75">${escapeXml(sub)}</text>`
+      ? `<text x="150" y="256" text-anchor="middle" font-family="'Sounso Quality','Kaiti SC','STKaiti','KaiTi',cursive" font-size="11" letter-spacing="1.5" fill="${labelTextColor}" opacity="0.75">${escapeXml(sub)}</text>`
       : ''
   }
   <!-- 底部排气阀 -->

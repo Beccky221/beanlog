@@ -133,6 +133,8 @@ async function migrateFromLocalStorage(): Promise<AppData | null> {
       if (id) photoIds.push(id)
     }
     dailyRecords.push({
+      beanId: typeof raw.beanId === 'string' ? raw.beanId : undefined,
+      beanName: typeof raw.beanName === 'string' ? raw.beanName : undefined,
       id: typeof raw.id === 'string' ? raw.id : newId('rec'),
       date: typeof raw.date === 'string' ? raw.date : new Date().toISOString().slice(0, 10),
       photoIds,

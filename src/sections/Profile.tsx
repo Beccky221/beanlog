@@ -131,7 +131,7 @@ export function Profile({
         <div className="bg-[var(--c-primary)] rounded-2xl px-5 py-5 text-[var(--c-primary-ink)]">
           <p
             className="text-[18px] font-semibold"
-            style={{ fontFamily: "var(--font-handwritten)" }}
+            style={{ fontFamily: "var(--font-title)" }}
           >
             {APP_NAME}
           </p>

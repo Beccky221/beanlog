@@ -81,8 +81,11 @@ async function main() {
   html = await inlineScript(html)
   html = await inlineIcon(html)
   html = await inlineManifest(html)
-  const fontLicense = await readFile(path.join(dist, 'font-licenses/PatrickHand-OFL.txt'), 'utf8')
-  html = replaceOnce(html, '</head>', `<!-- Patrick Hand font license\n${fontLicense}\n-->\n</head>`)
+  const fontNotices = []
+  for (const name of await readdir(path.join(dist, 'font-licenses'))) {
+    if (name.endsWith('.txt')) fontNotices.push(await readFile(path.join(dist, 'font-licenses', name), 'utf8'))
+  }
+  html = replaceOnce(html, '</head>', `<!-- Bundled font notices\n${fontNotices.join('\n\n')}\n-->\n</head>`)
   html = replaceOnce(
     html,
     '<title>咖啡实验室</title>',

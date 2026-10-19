@@ -16,6 +16,7 @@ import { Profile } from '@/sections/Profile'
 import { DailyLog } from '@/sections/DailyLog'
 import { CoffeeRecommendations } from '@/sections/CoffeeRecommendations'
 import { RecommendationAccess } from '@/components/RecommendationAccess'
+import { AnimatedTitle } from '@/components/AnimatedTitle'
 
 type Section = 'library' | 'daily' | 'recommendations' | 'profile'
 type Tab = 'home' | Section
@@ -23,7 +24,7 @@ type Tab = 'home' | Section
 const TABS: { key: Section; label: string; english: string; note: string }[] = [
   { key: 'library', label: '豆库', english: 'BEAN ARCHIVE', note: '收好每一袋喜欢' },
   { key: 'daily', label: '每日记录', english: 'DAILY JOURNAL', note: '记下一杯的日常' },
-  { key: 'recommendations', label: '找豆推荐', english: 'COFFEE DISCOVERY', note: '商品豆与烘焙商 · 邀请制' },
+  { key: 'recommendations', label: '风味捕手', english: 'FLAVOR HUNTER', note: '商品豆与烘焙商 · 邀请制' },
   { key: 'profile', label: '我的', english: 'MY CORNER', note: '偏好与随身工具' },
 ]
 
@@ -33,16 +34,16 @@ function HomeDirectory({ onOpen }: { onOpen: (section: Section) => void }) {
   return (
     <main className="bl-home-directory">
       <header className="bl-home-intro">
-        <p>{APP_BRAND_EN} · COFFEE FIELD NOTES</p>
-        <h1 className="bl-journal-title">{APP_NAME}</h1>
+        <p>{APP_BRAND_EN}</p>
+        <h1 className="bl-journal-title" aria-label={APP_NAME}><AnimatedTitle text={APP_NAME} /></h1>
         <span>{APP_POSITIONING}</span>
       </header>
       <nav className="bl-home-chapters" aria-label="选择板块">
         {TABS.map(({ key, label, english, note }, index) => (
-          <button key={key} type="button" className="bl-home-chapter" aria-label={key === 'recommendations' ? '找一袋喜欢的豆，商品豆与烘焙商推荐，凭邀请码开启' : undefined} onClick={() => onOpen(key)}>
+          <button key={key} type="button" className="bl-home-chapter" aria-label={key === 'recommendations' ? '风味捕手，商品豆与烘焙商推荐，凭邀请码开启' : `${label}，${note}`} onClick={() => onOpen(key)}>
             <span className="bl-home-chapter-index" aria-hidden>0{index + 1}</span>
             <ArrowUpRight size={16} className="bl-home-chapter-arrow" aria-hidden />
-            <span className={`bl-home-chapter-title ${key === 'library' ? 'bl-library-title' : 'bl-journal-title'}`}>{label}</span>
+            <span className={`bl-home-chapter-title ${key === 'library' ? 'bl-library-title' : 'bl-journal-title'}`}><AnimatedTitle text={label} delay={100 + index * 45} /></span>
             <span className="bl-home-chapter-english">{english}</span>
             <span className="bl-home-chapter-note">{note}</span>
           </button>
@@ -79,6 +80,21 @@ export default function App() {
   const [draftBean, setDraftBean] = useState<Bean | null>(null)
   const [isNew, setIsNew] = useState(false)
   const [wallOpen, setWallOpen] = useState(false)
+  // 对照豆袋时保留每日编辑器，不切换主页面或卸载未保存的记录。
+  const [referenceBean, setReferenceBean] = useState<Bean | null>(null)
+  const referenceTrigger = useRef<HTMLElement | null>(null)
+  const openBeanReference = (id: string) => {
+    const bean = beans.find(item => item.id === id)
+    if (!bean) return
+    referenceTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setReferenceBean(bean)
+  }
+  const closeBeanReference = () => {
+    setReferenceBean(null)
+    requestAnimationFrame(() => {
+      if (referenceTrigger.current?.isConnected) referenceTrigger.current.focus({ preventScroll: true })
+    })
+  }
   const closeWall = () => {
     setWallOpen(false)
     requestAnimationFrame(() => document.getElementById('bean-library-wall')?.focus())
@@ -209,7 +225,7 @@ export default function App() {
         <div
           key={detailOpen && draftBean ? `detail-${draftBean.id}` : tab}
           className={`page-scroll h-full overflow-y-auto ${slideClass}`}
-          inert={wallOpen}
+          inert={wallOpen || referenceBean !== null}
         >
           {detailOpen && draftBean ? (
             <BeanDetail
@@ -238,6 +254,8 @@ export default function App() {
               )}
               {tab === 'daily' && (
                 <DailyLog
+                  beans={beans}
+                  onOpenBean={openBeanReference}
                   records={dailyRecords}
                   onChange={(next) => store.setDailyRecords(() => next)}
                   onSavePhoto={store.savePhoto}
@@ -275,6 +293,21 @@ export default function App() {
         {wallOpen && (
           <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter" role="dialog" aria-modal="true" aria-label="豆库展示墙" onKeyDown={(event) => { if (event.key === 'Escape') closeWall() }}>
             <PosterWall beans={beans} onBack={closeWall} />
+          </div>
+        )}
+        {referenceBean && (
+          <div key={referenceBean.id} className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto page-enter-right" role="dialog" aria-modal="true" aria-label="对照豆袋详情">
+            <BeanDetail bean={referenceBean} isNew={false} grinders={grinders} backLabel="返回每日记录"
+              onBack={closeBeanReference}
+              onSave={bean => {
+                const updated = { ...bean, name: bean.name.trim() || '未命名豆袋', brand: bean.brand?.trim() || undefined, variety: bean.variety?.trim() || undefined, flavor: bean.flavor?.trim() || undefined }
+                store.setBeans(previous => previous.map(item => item.id === updated.id ? updated : item))
+                closeBeanReference()
+              }}
+              onDelete={id => {
+                if (window.confirm('确定删除这袋豆子吗？')) { removeBean(id); closeBeanReference() }
+              }}
+              onSavePhoto={store.savePhoto} onDropPhotos={store.dropPhotos} />
           </div>
         )}
       </div>

@@ -1,11 +1,14 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, ImagePlus, MapPin, PenLine, Plus, Trash2, X } from 'lucide-react'
-import { BREW_METHODS, type DailyRecord } from '@/types/bean'
+import { ChevronLeft, ChevronRight, Coffee, ImagePlus, MapPin, PenLine, Plus, Trash2, X } from 'lucide-react'
+import { BREW_METHODS, type Bean, type DailyRecord } from '@/types/bean'
+import { BeanThumb } from '@/components/BeanThumb'
 import { processPhotoFile } from '@/lib/image'
 import { usePhotoUrls } from '@/lib/usePhoto'
 import { nearbyCafes, type NearbyCafe } from '@/lib/nearbyCafes'
 
 interface DailyRecordsProps {
+  beans: Bean[]
+  onOpenBean: (id: string) => void
   records: DailyRecord[] | undefined
   onChange: (records: DailyRecord[]) => void
   onSavePhoto: (blob: Blob, original?: Blob) => Promise<{ id: string; originalId?: string }>
@@ -38,6 +41,7 @@ function emptyRecord(date: string): DailyRecord {
 function hasContent(r: DailyRecord): boolean {
   return (
     r.photoIds.length > 0 ||
+    !!r.beanId ||
     r.source === 'outside' ||
     Object.values(r.values).some((v) => (v ?? '').trim() !== '') ||
     (r.note ?? '').trim() !== ''
@@ -46,6 +50,8 @@ function hasContent(r: DailyRecord): boolean {
 
 /** 每日记录：月历 + 选中日期的记录列表 + 页中页编辑器（一天可记多条） */
 export function DailyRecords({
+  beans,
+  onOpenBean,
   records,
   onChange,
   onSavePhoto,
@@ -182,7 +188,7 @@ export function DailyRecords({
               {rec.photoIds.length > 0 && (
                 <RecordPhotos photoIds={rec.photoIds} label={fmtCn(selected)} />
               )}
-              <RecordParams record={rec} />
+              <RecordParams record={rec} beans={beans} onOpenBean={onOpenBean} />
               <div className="flex gap-2 mt-2.5">
                 <button
                   type="button"
@@ -219,15 +225,11 @@ export function DailyRecords({
         )
       )}
 
-      {list.length === 0 && (
-        <p className="text-[12px] text-[var(--c-ink-ghost)] mt-3">
-          每天喝了什么、用了什么参数，点「记录今天」记下来，日历上会留下小圆点。
-        </p>
-      )}
-
       {/* 页中页编辑器 */}
       {editing && (
         <DayEditor
+          beans={beans}
+          onOpenBean={onOpenBean}
           date={editing}
           initial={dayRecords(editing)}
           onSavePhoto={onSavePhoto}
@@ -244,7 +246,8 @@ export function DailyRecords({
 }
 
 /** 记录里的冲煮参数摘要行 */
-function RecordParams({ record }: { record: DailyRecord }) {
+function RecordParams({ record, beans, onOpenBean }: { record: DailyRecord; beans: Bean[]; onOpenBean: (id: string) => void }) {
+  const bean = beans.find(item => item.id === record.beanId)
   const method = record.source === 'outside' ? undefined : BREW_METHODS.find((m) => m.id === record.method)
   const parts = method
     ? method.fields
@@ -258,6 +261,11 @@ function RecordParams({ record }: { record: DailyRecord }) {
   return (
     <div className="mt-2">
       <p className="text-[12.5px] text-[var(--c-ink-soft)]">{record.source === 'outside' ? '外面喝' : '自己做'}</p>
+      {record.source !== 'outside' && (bean || record.beanName) && (
+        bean ? <button type="button" onClick={() => onOpenBean(bean.id)} aria-label={`查看${bean.name}的豆袋详情`} className="mt-1.5 flex items-center gap-1.5 text-left text-[13px] text-[var(--c-accent)]">
+          <Coffee size={14} className="shrink-0" aria-hidden /><span>{bean.name}</span><ChevronRight size={14} className="shrink-0" aria-hidden />
+        </button> : <p className="mt-1 text-[12px] text-[var(--c-ink-faint)]">{record.beanName} · 已从豆库删除</p>
+      )}
       {record.source === 'outside' && (record.locationName?.trim() || record.location) && <p className="mt-1 text-[12px] text-[var(--c-ink-faint)] flex items-start gap-1">
         <MapPin size={13} className="shrink-0 mt-0.5" />
         {record.locationName?.trim() || (record.location && `${record.location.latitude.toFixed(5)}, ${record.location.longitude.toFixed(5)}`)}
@@ -296,6 +304,8 @@ function RecordPhotos({ photoIds, label }: { photoIds: string[]; label: string }
 }
 
 interface DayEditorProps {
+  beans: Bean[]
+  onOpenBean: (id: string) => void
   date: string
   initial: DailyRecord[]
   onClose: () => void
@@ -305,7 +315,7 @@ interface DayEditorProps {
 }
 
 /** 某一天的页中页编辑器：一个模块 = 照片 + 冲煮参数，可再加多个模块 */
-function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }: DayEditorProps) {
+function DayEditor({ beans, onOpenBean, date, initial, onClose, onSave, onSavePhoto, onDropPhotos }: DayEditorProps) {
   const [entries, setEntries] = useState<DailyRecord[]>(() =>
     initial.length > 0
       ? initial.map((r) => ({ ...r, photoIds: [...r.photoIds], values: { ...r.values } }))
@@ -334,7 +344,10 @@ function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }
   }
 
   const save = () => {
-    const kept = entries.filter(hasContent).map((e) => ({ ...e, date, ...(e.source === 'outside' ? { method: undefined, values: {} } : {}) }))
+    const kept = entries.filter(hasContent).map((e) => ({ ...e, date,
+      beanName: beans.find(bean => bean.id === e.beanId)?.name ?? e.beanName,
+      ...(e.source === 'outside' ? { method: undefined, values: {}, beanId: undefined, beanName: undefined } : {}),
+    }))
     pruneTempPhotos(kept)
     onSave(kept)
   }
@@ -372,6 +385,8 @@ function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }
       {/* 记录模块列表 */}
       {entries.map((entry, idx) => (
         <EntryModule
+          beans={beans}
+          onOpenBean={onOpenBean}
           key={entry.id}
           entry={entry}
           index={idx}
@@ -392,15 +407,14 @@ function DayEditor({ date, initial, onClose, onSave, onSavePhoto, onDropPhotos }
         >
           <Plus size={15} /> 再加一条记录
         </button>
-        <p className="text-[12px] text-[var(--c-ink-ghost)] mt-3">
-          未添加照片、参数或札记的“自己做”记录，保存时会自动略去。
-        </p>
       </div>
     </div>
   )
 }
 
 interface EntryModuleProps {
+  beans: Bean[]
+  onOpenBean: (id: string) => void
   entry: DailyRecord
   index: number
   showIndex: boolean
@@ -412,6 +426,8 @@ interface EntryModuleProps {
 
 /** 一条每日记录模块：咖啡照片（点击添加）+ 冲煮参数 */
 function EntryModule({
+  beans,
+  onOpenBean,
   entry,
   index,
   showIndex,
@@ -535,6 +551,7 @@ function EntryModule({
       <div className="px-5 mt-4">
         <DrinkContext entry={entry} onPatch={onPatch}>
           {entry.source !== 'outside' && <>
+          <DailyBeanReference beans={beans} entry={entry} onPatch={onPatch} onOpenBean={onOpenBean} />
           <div className="flex gap-2 py-3.5 border-b border-[var(--c-soft)] overflow-x-auto">
             {BREW_METHODS.map((m) => {
               const active = m.id === method.id
@@ -585,6 +602,38 @@ function EntryModule({
       </div>
     </div>
   )
+}
+
+/** 每条自己做的记录独立关联豆库；详情由外层打开，编辑器保持挂载。 */
+function DailyBeanReference({ beans, entry, onPatch, onOpenBean }: { beans: Bean[]; entry: DailyRecord; onPatch: (patch: Partial<DailyRecord>) => void; onOpenBean: (id: string) => void }) {
+  const selectId = useId()
+  const bean = beans.find(item => item.id === entry.beanId)
+  const missing = !!entry.beanId && !bean
+  return <section className="pt-4 pb-3.5 border-b border-[var(--c-soft)]">
+    <label htmlFor={selectId} className="block text-[13px] text-[var(--c-ink-soft)]">今天用的是什么豆子</label>
+    <select id={selectId} value={entry.beanId ?? ''} disabled={beans.length === 0 && !missing}
+      onChange={event => {
+        const selected = beans.find(item => item.id === event.target.value)
+        onPatch({ beanId: selected?.id, beanName: selected?.name })
+      }}
+      className="mt-2 w-full rounded-xl bg-[var(--c-surface-soft)] px-3 py-2.5 text-[13px] text-[var(--c-ink)] outline-none border border-[var(--c-line)] disabled:opacity-60">
+      <option value="">{beans.length ? '从豆库选择一袋豆子' : '豆库里还没有豆子'}</option>
+      {missing && <option value={entry.beanId}>{entry.beanName || '原豆袋'}（已从豆库删除）</option>}
+      {beans.map(item => <option key={item.id} value={item.id}>{item.name}{item.brand?.trim() ? ` · ${item.brand.trim()}` : ''}</option>)}
+    </select>
+    {bean ? <button type="button" onClick={() => onOpenBean(bean.id)} aria-label={`查看${bean.name}的豆袋详情，返回后继续记录`}
+      className="mt-3 flex w-full items-center gap-3 rounded-xl border border-[var(--c-line)] bg-[var(--c-surface)] p-3 text-left text-[var(--c-ink)] active:scale-[0.99] transition-transform">
+      <BeanThumb bean={bean} className="h-12 w-10 shrink-0 rounded-lg object-contain bg-[var(--c-photo-well)]" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-semibold break-words">{bean.name}</span>
+        <span className="mt-0.5 block text-[11.5px] text-[var(--c-ink-faint)]">{[bean.brand, bean.roastLevel].filter(Boolean).join(' · ')}</span>
+        <span className="mt-1 block text-[11px] text-[var(--c-accent)]">查看豆袋详情 · 返回后继续记录</span>
+      </span>
+      <ChevronRight size={17} className="shrink-0 text-[var(--c-accent)]" aria-hidden />
+    </button> : <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-faint)]">
+      {missing ? '这袋豆子已从豆库删除，原名称会保留在记录里，也可以重新选择。' : beans.length ? '选好后，点击豆子查看详情，对照冲煮参数。' : '先在豆库添加豆子，再回来关联这杯咖啡。'}
+    </p>}
+  </section>
 }
 
 /** 每杯独立记录来源与地点；定位仅由用户点击触发。 */

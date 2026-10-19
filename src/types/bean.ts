@@ -61,6 +61,10 @@ export const BREW_METHODS: BrewMethod[] = [
 
 /** 一条每日记录：某天喝这袋豆子留下的照片、冲煮参数和札记（一天可多条） */
 export interface DailyRecord {
+  /** 这杯自己做的咖啡使用的豆库条目 */
+  beanId?: string
+  /** 名称快照：豆库条目被删除后仍能知道当时喝的是什么 */
+  beanName?: string
   /** 旧记录未指定时视为自己做 */
   source?: 'home' | 'outside'
   locationName?: string

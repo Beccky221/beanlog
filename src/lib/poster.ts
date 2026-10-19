@@ -5,7 +5,8 @@ import { bagImage } from '@/lib/bagImage'
 import { APP_BRAND_EN, placeholderBrand } from '@/lib/brand'
 import { cssVar } from '@/lib/theme'
 
-const SERIF = `'Patrick Hand','LXGW WenKai','Kaiti SC','STKaiti','KaiTi',cursive`
+const SERIF = `'Sounso Quality','Smiley Sans',sans-serif`
+const TITLE = `'Sounso Quality','YouSheBiaoTiHei','Smiley Sans',sans-serif`
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -85,10 +86,11 @@ function drawContain(
  * 预览与保存共用这一份渲染结果，保证所见即所得。
  */
 export async function renderPoster(beans: Bean[]): Promise<string> {
-  // 等字体准备好再绘制，确保保存的海报和界面使用同样的手写字体。
+  // 等字体准备好再绘制，确保保存的海报和界面使用同样的标题与正文字体。
   await Promise.all([
-    document.fonts.load('400 22px "LXGW WenKai"'),
-    document.fonts.load('400 22px "Patrick Hand"', 'COFFEE LAB'),
+    document.fonts.load('400 22px "Smiley Sans"', '冲煮参数 18 93'),
+    document.fonts.load('400 68px "YouSheBiaoTiHei"', '我的咖啡收藏'),
+    document.fonts.load('400 22px "Sounso Quality"', 'COFFEE LAB'),
   ])
   const shown = beans.slice(0, 9)
   const cols = 3
@@ -134,7 +136,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
 
   // 大标题
   ctx.fillStyle = ink
-  ctx.font = `700 68px ${SERIF}`
+  ctx.font = `400 68px ${TITLE}`
   ctx.fillText('我的咖啡收藏', margin, headerY + 96)
 
   ctx.fillStyle = faint
@@ -169,7 +171,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
     ctx.fillText(String(i + 1).padStart(2, '0'), cx + 18, cy + 252)
 
     ctx.fillStyle = ink
-    ctx.font = `600 22px ${SERIF}`
+    ctx.font = `400 22px ${TITLE}`
     const nameLines = wrapName(bean.name)
     nameLines.forEach((line, li) => {
       ctx.fillText(line, cx + 18, cy + 284 + li * 28)

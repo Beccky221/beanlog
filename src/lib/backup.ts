@@ -223,6 +223,8 @@ export async function restoreBackup(
           accuracy: typeof point.accuracy === 'number' && Number.isFinite(point.accuracy) && point.accuracy >= 0 ? point.accuracy : undefined }
       : undefined
     dailyRecords.push({
+      beanId: typeof raw.beanId === 'string' ? raw.beanId : undefined,
+      beanName: typeof raw.beanName === 'string' ? raw.beanName : undefined,
       source: raw.source === 'outside' ? 'outside' : 'home',
       locationName: typeof raw.locationName === 'string' ? raw.locationName : undefined,
       location,

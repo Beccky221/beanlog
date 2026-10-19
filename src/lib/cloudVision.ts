@@ -1,3 +1,4 @@
+import { translateVariety } from '@/lib/coffeeIdentity'
 import type { ExtractedIdentity } from '@/lib/coffeeIdentity'
 import { ROAST_LEVELS, type RoastLevel } from '@/types/bean'
 import { readableImage, type ImageCrop } from '@/lib/ocrImage'
@@ -79,7 +80,7 @@ export async function recognizeCloudPhoto(photo: Blob, report: (text: string) =>
     const result = await request('/recognize', combined.signal, encoded)
     if (!result.fields || typeof result.fields !== 'object') throw new Error('识图服务未返回豆袋信息。')
     const clean = (v: unknown) => typeof v === 'string' ? v.trim().slice(0, 300) : ''
-    const fields: VisionIdentity = { name: clean(result.fields.name), brand: clean(result.fields.brand), variety: clean(result.fields.variety),
+    const fields: VisionIdentity = { name: clean(result.fields.name), brand: clean(result.fields.brand), variety: translateVariety(clean(result.fields.variety)),
       processingMethod: clean(result.fields.processingMethod), origin: clean(result.fields.origin), flavor: clean(result.fields.flavor), milkFlavor: clean(result.fields.milkFlavor),
       roastLevel: ROAST_LEVELS.includes(result.fields.roastLevel) ? result.fields.roastLevel as RoastLevel : '' }
     const warnings = Array.isArray(result.warnings) ? result.warnings.slice(0, 8).map(clean).filter(Boolean) : []

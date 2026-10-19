@@ -1,0 +1,10 @@
+优设标题黑 / YouSheBiaoTiHei
+(c) Copyright YouShe Network Technology Co., Ltd
+
+Official font and usage announcement:
+https://www.uisdc.com/uisdc-first-free-font
+The publisher states this font is free for commercial use.
+
+WOFF2 distribution mirror:
+https://github.com/gechaofantianwang/my-fonts/blob/main/YouSheBiaoTiHei-Regular.woff2
+The glyphs, original slant and internal font names are unchanged.

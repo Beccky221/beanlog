@@ -2,30 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 题字逐字轻落：仅动画绘制，不改变横排或竖排标题的占位。 */
+.bl-title-letter {
+  display: inline-block;
+  white-space: pre;
+  animation: bl-title-letter-drop .5s cubic-bezier(.22,.61,.36,1) both;
+}
+@keyframes bl-title-letter-drop {
+  from { opacity: 0; transform: translateY(-14px) rotate(-2deg); }
+  to { opacity: 1; transform: translateY(0) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bl-title-letter { animation: none; }
+}
 
 
-/* 英文使用清楚的分笔手写体；数字和中文仍由原字体负责，便于读取参数。 */
+
+/* 英文使用用户提供的 Sounso Quality；中文与参数分别走下方字体角色。 */
 @font-face {
-  font-family: 'Patrick Hand';
-  src: url('./assets/fonts/PatrickHand-Regular.woff2') format('woff2');
+  font-family: 'Sounso Quality';
+  src: url('./assets/fonts/SounsoQuality-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
   unicode-range: U+0041-005A, U+0061-007A, U+00C0-024F, U+1E00-1EFF;
 }
 
-/* 霞鹜文楷：柔和的手写笔触，字体随应用保存，不依赖在线字体服务。 */
+/* 原版字形自带倾斜，保留轮廓；不额外施加 CSS 斜体。 */
 @font-face {
-  font-family: 'LXGW WenKai';
-  src: url('./assets/fonts/LXGWWenKai-Regular.woff2') format('woff2');
+  font-family: 'Smiley Sans';
+  src: url('./assets/fonts/SmileySans-Oblique.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'YouSheBiaoTiHei';
+  src: url('./assets/fonts/YouSheBiaoTiHei-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 :root {
-  --font-english-handwritten: 'Patrick Hand';
-  --font-handwritten: var(--font-english-handwritten), 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', cursive;
+  --font-english: 'Sounso Quality';
+  --font-body: var(--font-english), 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-title: var(--font-english), 'YouSheBiaoTiHei', 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* 保留现有组件使用的变量接口。 */
+  --font-handwritten: var(--font-body);
 }
+h1, h2, h3 { font-family: var(--font-title); font-synthesis: none; }
 
 
 /* ==========================================================================
@@ -563,35 +588,22 @@ button, input, textarea, select, input::file-selector-button {
 }
 input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 
-/* 日杂题字：悠哉字体的标题字形，保留自然的笔画起伏。 */
-@font-face {
-  font-family: 'Beanlog Journal Title';
-  src: url('./assets/fonts/BeanlogJournalTitle.woff2') format('woff2');
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-:root { --font-title-handwritten: var(--font-english-handwritten), 'Beanlog Journal Title', 'LXGW WenKai', 'Kaiti SC', 'STKaiti', 'KaiTi', cursive; }
+/* 中文标题统一使用优设标题黑，英文使用 Sounso Quality。 */
+:root { --font-title-handwritten: var(--font-title); }
 .bl-journal-title {
   font-family: var(--font-title-handwritten);
   font-size: 38px;
   font-weight: 400;
   line-height: 1.2;
   letter-spacing: 0.045em;
-  -webkit-text-stroke: 0.2px currentColor;
+  -webkit-text-stroke: 0;
+  font-synthesis: none;
 }
 .bl-journal-title-compact { font-size: 25px; letter-spacing: 0.02em; }
 
-/* 「豆库」专属题字：自绘行楷轮廓，轻重起伏与收锋由字形本身呈现。 */
-@font-face {
-  font-family: 'Beanlog Library Ink';
-  src: url('./assets/fonts/BeanlogLibraryInk.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* 豆库标题保留尺寸及底部对齐，采用相同的中文标题字体。 */
 .bl-library-title {
-  font-family: 'Beanlog Library Ink', var(--font-title-handwritten);
+  font-family: var(--font-title);
   font-size: 48px;
   font-weight: 400;
   line-height: 1.1;
@@ -647,7 +659,8 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 }
 .bl-bean-thumb {
   width: 100% !important;
-  height: 112px !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
   border-radius: 12px 10px 13px 11px !important;
   border: 1px solid color-mix(in srgb, var(--c-primary) 10%, transparent);
   background-color: var(--c-photo-well);
@@ -681,7 +694,7 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 .bl-vertical-heading-eyebrow {
   writing-mode: vertical-rl;
   text-orientation: mixed;
-  font-family: var(--font-english-handwritten), var(--font-handwritten);
+  font-family: var(--font-english), var(--font-handwritten);
   font-size: 10px;
   font-weight: 400;
   letter-spacing: .06em;
@@ -729,7 +742,6 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 @media (max-width: 360px) {
   .bl-bean-board { column-gap: 9px; }
   .bl-bean-card { padding: 8px !important; }
-  .bl-bean-thumb { height: 98px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bl-bean-board-item, .bl-library-search-panel { animation: none; }
@@ -823,7 +835,7 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   line-height: 1;
 }
 .bl-home-chapter-title.bl-library-title { font-size: 39px; }
-.bl-home-chapter-english { position: absolute; left: 18px; top: 46px; writing-mode: vertical-rl; font-family: var(--font-english-handwritten), var(--font-handwritten); font-size: 10px; font-weight: 400; letter-spacing: .06em; color: var(--c-ink-faint); }
+.bl-home-chapter-english { position: absolute; left: 18px; top: 46px; writing-mode: vertical-rl; font-family: var(--font-english), var(--font-handwritten); font-size: 10px; font-weight: 400; letter-spacing: .06em; color: var(--c-ink-faint); }
 .bl-home-chapter-note { position: absolute; left: 17px; bottom: 18px; font-size: 10px; color: var(--c-ink-soft); }
 .bl-home-footer { margin-top: 26px; text-align: center; color: var(--c-ink-ghost); font-size: 10px; letter-spacing: .2em; }
 @media (max-width: 360px) {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, KeyRound, LockKeyhole } from 'lucide-react'
+import { AnimatedTitle } from '@/components/AnimatedTitle'
 import { checkRecommendationSession, forgetRecommendationSession, readRecommendationEndpoint, readRecommendationSession, RecommendationAccessError, saveRecommendationSession, verifyRecommendationInvite, type RecommendationSession } from '@/lib/recommendationAccess'
 
 export function RecommendationAccess({ onBack, children }: { onBack: () => void; children: (session: RecommendationSession, lock: () => void) => ReactNode }) {
@@ -49,7 +50,7 @@ export function RecommendationAccess({ onBack, children }: { onBack: () => void;
   return <div className="min-h-full pb-12">
     <header className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center gap-3 bg-[var(--c-app)]/95 backdrop-blur">
       <button type="button" onClick={onBack} aria-label="返回首页" className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--c-ink)]"><ArrowLeft size={18} /></button>
-      <h2 className="text-[17px] text-[var(--c-ink)]">找一袋喜欢的豆</h2>
+      <h2 className="text-[17px] text-[var(--c-ink)]" aria-label="风味捕手"><AnimatedTitle text="风味捕手" /></h2>
     </header>
     <div className="px-6 pt-8">
       <div className="rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-6">
