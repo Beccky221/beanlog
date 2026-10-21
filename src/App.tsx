@@ -11,6 +11,7 @@ import { useStore } from '@/lib/store'
 import { applyTheme, persistTheme, readStoredTheme, type ThemeName } from '@/lib/theme'
 import { BeanLibrary } from '@/sections/BeanLibrary'
 import { BeanDetail } from '@/sections/BeanDetail'
+import { BeanPosterPreview } from '@/sections/BeanPosterPreview'
 import { OriginMap } from '@/sections/OriginMap'
 import { Profile } from '@/sections/Profile'
 import { DailyLog } from '@/sections/DailyLog'
@@ -78,6 +79,20 @@ export default function App() {
   const [draftBean, setDraftBean] = useState<Bean | null>(null)
   const [isNew, setIsNew] = useState(false)
   const [wallOpen, setWallOpen] = useState(false)
+  const [posterBean, setPosterBean] = useState<Bean | null>(null)
+  const posterTrigger = useRef<HTMLElement | null>(null)
+  const openBeanPoster = (id: string) => {
+    const bean = beans.find(item => item.id === id)
+    if (!bean) return
+    posterTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setPosterBean(bean)
+  }
+  const closeBeanPoster = () => {
+    setPosterBean(null)
+    requestAnimationFrame(() => {
+      if (posterTrigger.current?.isConnected) posterTrigger.current.focus({ preventScroll: true })
+    })
+  }
   // 对照豆袋时保留每日编辑器，不切换主页面或卸载未保存的记录。
   const [referenceBean, setReferenceBean] = useState<Bean | null>(null)
   const referenceTrigger = useRef<HTMLElement | null>(null)
@@ -223,7 +238,7 @@ export default function App() {
         <div
           key={detailOpen && draftBean ? `detail-${draftBean.id}` : tab}
           className={`page-scroll h-full overflow-y-auto ${slideClass}`}
-          inert={wallOpen || referenceBean !== null}
+          inert={wallOpen || referenceBean !== null || posterBean !== null}
         >
           {detailOpen && draftBean ? (
             <BeanDetail
@@ -248,6 +263,7 @@ export default function App() {
                   onAdd={openNew}
                   onDelete={deleteFromLibrary}
                   onOpenWall={() => setWallOpen(true)}
+                  onSharePoster={openBeanPoster}
                 />
               )}
               {tab === 'daily' && (
@@ -288,6 +304,7 @@ export default function App() {
             </>
           )}
         </div>
+        {posterBean && <BeanPosterPreview bean={posterBean} onBack={closeBeanPoster} />}
         {wallOpen && (
           <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter" role="dialog" aria-modal="true" aria-label="咖啡豆产地地图" onKeyDown={(event) => { if (event.key === 'Escape') closeWall() }}>
             <OriginMap beans={beans} onBack={closeWall} onOpenBean={id => { setWallOpen(false); openDetail(id) }} />

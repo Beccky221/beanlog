@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { ScanText } from 'lucide-react'
+import { RecommendationAccess } from '@/components/RecommendationAccess'
 import { checkVisionConfig, clearVisionConfig, getVisionConfig, saveVisionConfig } from '@/lib/cloudVision'
 
 export function VisionSettings() {
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState(() => getVisionConfig().url)
-  const [token, setToken] = useState(() => getVisionConfig().token)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const save = async (check: boolean) => {
     setError(''); setStatus('')
     try {
-      saveVisionConfig(url, token)
+      saveVisionConfig(url)
       if (check) {
         setBusy(true)
         const model = await checkVisionConfig()
@@ -30,18 +30,18 @@ export function VisionSettings() {
       </button>
       {open && <div id="vision-settings" className="mt-4 text-[12px] text-[var(--c-ink-soft)]">
         <p className="leading-relaxed">使用千问时，你选择的识别图片会经由你的服务发送到阿里云。识别结果需核对后填入。</p>
+        <RecommendationAccess inline>{(_session, lock) => <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-[var(--c-soft)] p-3"><p>邀请已开启 · 千问识图与风味捕手通用</p><button type="button" onClick={lock} className="shrink-0 py-2">退出授权</button></div>}</RecommendationAccess>
+        <details className="mt-3"><summary className="cursor-pointer py-2">高级连接设置</summary>
         <label className="block mt-3">识图服务地址
           <input type="url" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} placeholder="https://你的函数地址.cn-beijing.fcapp.run" autoCapitalize="none" spellCheck={false} className="mt-2 p-3 w-full rounded-xl bg-[var(--c-paper)] outline-none" />
         </label>
-        <label className="block mt-3">服务口令
-          <input type="password" value={token} disabled={busy} onChange={e => setToken(e.target.value)} placeholder="与后端 VISION_ACCESS_TOKEN 一致" autoComplete="off" className="mt-2 p-3 w-full rounded-xl bg-[var(--c-paper)] outline-none" />
-        </label>
-        <p className="mt-2 leading-relaxed text-[11px] text-[var(--c-ink-faint)]">口令只保留在本次会话中，不随记录备份。重新打开 APP 后可能需要再填写。千问 API Key 请只填在阿里云函数的环境变量里。</p>
+        <p className="mt-2 leading-relaxed text-[11px] text-[var(--c-ink-faint)]">默认地址已配置。用户只需验证邀请码；千问 API Key 由管理员保存在后台。</p>
         <div className="mt-3 flex gap-2 flex-wrap">
           <button type="button" disabled={busy} onClick={() => void save(true)} className="px-4 py-2 rounded-full bg-[var(--c-primary)] text-[var(--c-primary-ink)] disabled:opacity-50">{busy ? '正在检查…' : '保存并检查连接'}</button>
           <button type="button" disabled={busy} onClick={() => void save(false)} className="px-3 py-2 rounded-full">仅保存</button>
-          <button type="button" disabled={busy} onClick={() => { clearVisionConfig(); setUrl(getVisionConfig().url); setToken(''); setError(''); setStatus('口令已清除，服务地址已恢复默认。') }} className="px-3 py-2 rounded-full text-[var(--c-ink-faint)]">清除设置</button>
+          <button type="button" disabled={busy} onClick={() => { clearVisionConfig(); setUrl(getVisionConfig().url); setError(''); setStatus('识图服务地址已恢复默认，邀请授权不变。') }} className="px-3 py-2 rounded-full text-[var(--c-ink-faint)]">恢复默认地址</button>
         </div>
+        </details>
         {status && <p role="status" className="mt-3 leading-relaxed">{status}</p>}
         {error && <p role="alert" className="mt-3 leading-relaxed text-[var(--c-danger)]">{error}</p>}
       </div>}

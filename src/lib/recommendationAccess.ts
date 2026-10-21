@@ -1,4 +1,7 @@
 export interface RecommendationSession { endpoint: string; token: string; expiresAt: string }
+export const INVITE_SESSION_EVENT = 'beanlog-invite-session-change'
+let ephemeralSession: RecommendationSession | null = null
+let volatileSession = false
 const SESSION_KEY = 'beanlog.recommend.invite.session'
 const ENDPOINT_KEY = 'beanlog.recommend.endpoint'
 const DEFAULT_ENDPOINT = 'https://beanlogecommend-lkwzlzbeca.cn-beijing.fcapp.run'
@@ -21,15 +24,22 @@ export function readRecommendationEndpoint() {
   try { return localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT } catch { return DEFAULT_ENDPOINT }
 }
 export function readRecommendationSession(): RecommendationSession | null {
+  if (volatileSession) return ephemeralSession && Date.parse(ephemeralSession.expiresAt) > Date.now() ? ephemeralSession : null
   try {
     const value = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
     if (!value || typeof value.token !== 'string' || !value.token.startsWith('v1.') || value.token.length > 1024 || typeof value.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.expiresAt)) || Date.parse(value.expiresAt) <= Date.now()) return null
     return { endpoint: recommendationServiceUrl(value.endpoint), token: value.token, expiresAt: value.expiresAt }
-  } catch { return null }
+  } catch { return ephemeralSession && Date.parse(ephemeralSession.expiresAt) > Date.now() ? ephemeralSession : null }
 }
-export function forgetRecommendationSession() { try { localStorage.removeItem(SESSION_KEY) } catch { /* 当前页面仍会退出授权 */ } }
+export function forgetRecommendationSession() {
+  ephemeralSession = null
+  try { localStorage.removeItem(SESSION_KEY) } catch { /* 当前页面仍会退出授权 */ }
+  window.dispatchEvent(new Event(INVITE_SESSION_EVENT))
+}
 export function saveRecommendationSession(session: RecommendationSession) {
-  try { localStorage.setItem(ENDPOINT_KEY, session.endpoint); localStorage.setItem(SESSION_KEY, JSON.stringify(session)) } catch { /* 浏览器禁用存储时，只在当前页面使用 */ }
+  ephemeralSession = session
+  try { localStorage.setItem(ENDPOINT_KEY, session.endpoint); localStorage.setItem(SESSION_KEY, JSON.stringify(session)); volatileSession = false } catch { volatileSession = true }
+  window.dispatchEvent(new Event(INVITE_SESSION_EVENT))
 }
 
 async function request(endpoint: string, path: string, signal: AbortSignal, token?: string, code?: string) {

@@ -1,4 +1,6 @@
-import { timingSafeEqual } from 'node:crypto'
+import { createInviteAccess } from '../invite-access.mjs'
+
+const inviteAccess = createInviteAccess()
 
 // FC 3.0 内置 Node.js 20；入口 index.handler。不要记录事件、图片或密钥。
 const MAX_IMAGE = 6 * 1024 * 1024
@@ -27,19 +29,12 @@ function config() {
       !(base.hostname === 'dashscope.aliyuncs.com' || base.hostname.endsWith('.maas.aliyuncs.com')) ||
       base.pathname.replace(/\/+$/, '') !== '/compatible-mode/v1') throw new Error('invalid config')
   return {
-    key: process.env.DASHSCOPE_API_KEY || '', token: process.env.VISION_ACCESS_TOKEN || '',
+    key: process.env.DASHSCOPE_API_KEY || '',
     endpoint: base.href.replace(/\/+$/, '') + '/chat/completions',
     model: process.env.QWEN_VISION_MODEL || 'qwen3-vl-plus',
     origins: new Set((process.env.VISION_ALLOWED_ORIGINS || 'null,https://beccky221.github.io').split(',').map(s => s.trim())),
     limit: Math.max(1, Math.min(200, Number(process.env.VISION_DAILY_LIMIT) || 30)),
   }
-}
-
-function authorized(value, token) {
-  if (token.length < 16) return false
-  const actual = Buffer.from(typeof value === 'string' ? value : '')
-  const expected = Buffer.from(`Bearer ${token}`)
-  return actual.length === expected.length && timingSafeEqual(actual, expected)
 }
 
 function image(value) {
@@ -66,17 +61,18 @@ export const handler = async (event) => {
   const origin = inputHeaders.origin
   if (origin && !cfg.origins.has(origin)) return send(403, { error: '当前网页不在允许来源中。' })
   // FC 内置域名网关会回显 Origin。重复返回该头会被浏览器拒绝。
-  // 允许来源仍由上面的白名单强制检查，模型调用仍须通过口令认证。
+  // 允许来源仍由上面的白名单强制检查，模型调用仍须通过邀请码授权认证。
   headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
   headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
   const method = request.requestContext?.http?.method
   const path = request.rawPath || request.requestContext?.http?.path
   if (method === 'OPTIONS') return send(204, null)
-  if (!authorized(inputHeaders.authorization, cfg.token)) return send(401, { error: '识图服务口令不正确，或后端未设置至少16位的口令。' })
+  const grant = inviteAccess.authorize(inputHeaders.authorization)
+  if (!grant) return send(401, { error: '请先验证邀请码，授权已过期或被停用时需重新验证。' })
   if (!cfg.key) return send(503, { error: '请在函数环境变量中配置 DASHSCOPE_API_KEY。' })
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   if (daily.date !== date) daily = { date, count: 0 }
-  if (method === 'GET' && path === '/health') return send(200, { service: 'beanlog-vision', configured: true, model: cfg.model, remaining: Math.max(0, cfg.limit - daily.count) })
+  if (method === 'GET' && path === '/health') return send(200, { service: 'beanlog-vision', configured: true, auth: 'invite', expiresAt: grant.expiresAt, model: cfg.model, remaining: Math.max(0, cfg.limit - daily.count) })
   if (method !== 'POST' || path !== '/recognize') return send(404, { error: '接口不存在，请使用识图函数的根地址。' })
   if (!String(inputHeaders['content-type'] || '').startsWith('application/json')) return send(415, { error: '请发送 JSON 图片请求。' })
   const body = typeof request.body === 'string' ? request.body : ''

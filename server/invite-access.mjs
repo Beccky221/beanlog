@@ -16,7 +16,7 @@ export function createInviteAccess() {
   const seconds = 7 * 24 * 60 * 60
   return {
     verify(code, address) {
-      if (!ready) return { status: 503, error: '邀请功能尚未在推荐服务中配置，请联系邀请人。' }
+      if (!ready) return { status: 503, error: '统一邀请授权尚未配置，请联系邀请人。' }
       const now = Date.now()
       for (const [ip, record] of attempts) if (record.until <= now) attempts.delete(ip)
       const record = attempts.get(address) || { count: 0, until: now + 10 * 60 * 1000 }

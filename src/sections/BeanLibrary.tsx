@@ -2,7 +2,7 @@
    这里的 effect 是把「外部缓存/异步读到的值」同步进 state（照片地址、滑动位置、
    海报渲染结果），setState 都带了相同性判断，不会引起级联渲染。 */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Heart, Bookmark, Plus, Search, Trash2, X, MapPin } from 'lucide-react'
+import { Heart, Bookmark, Plus, Search, Trash2, X, MapPin, Share2 } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
@@ -17,6 +17,7 @@ interface BeanLibraryProps {
   onAdd: () => void
   onDelete: (id: string) => void
   onOpenWall: () => void
+  onSharePoster: (id: string) => void
 }
 
 const REVEAL = 76
@@ -116,6 +117,12 @@ function SwipeableItem({ entranceIndex, open, onOpenChange, onTap, onDelete, chi
         onClick={handleClick}
         role="button"
         tabIndex={0}
+        onKeyDown={event => {
+          if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault()
+            handleClick()
+          }
+        }}
       >
         {children}
       </div>
@@ -123,7 +130,7 @@ function SwipeableItem({ entranceIndex, open, onOpenChange, onTap, onDelete, chi
   )
 }
 
-export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWall }: BeanLibraryProps) {
+export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWall, onSharePoster }: BeanLibraryProps) {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchButton = useRef<HTMLButtonElement>(null)
@@ -308,6 +315,12 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
                     )}
                   </div>
                 )}
+                <button type="button" aria-label={`分享${bean.name}的海报`} aria-haspopup="dialog"
+                  onTouchStart={event => event.stopPropagation()}
+                  onClick={event => { event.stopPropagation(); setOpenId(null); onSharePoster(bean.id) }}
+                  className="mt-3 pt-2.5 border-t border-[var(--c-border)] w-full flex items-center justify-center gap-1.5 min-h-10 text-[12px] text-[var(--c-primary)] active:opacity-60">
+                  <Share2 size={14} aria-hidden /> 分享海报
+                </button>
               </div>
             </div>
           </SwipeableItem>

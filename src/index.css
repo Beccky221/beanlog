@@ -52,6 +52,40 @@
 .bl-origin-unresolved button { font-size: 12px; }
 .bl-origin-unresolved button:last-child { border-bottom: 0; }
 
+/* 地图页按阅读层次入场；引线只绘制一次，切换产地不重播整张地图。 */
+.bl-origin-stats > span,
+.bl-origin-map-label > span,
+.bl-origin-world,
+.bl-origin-legend,
+.bl-origin-selection > header,
+.bl-origin-bean,
+.bl-origin-empty,
+.bl-origin-unresolved {
+  animation: bl-origin-content-drop .48s cubic-bezier(.22,.61,.36,1) backwards;
+}
+.bl-origin-stats > span { display: inline-block; animation-delay: 80ms; }
+.bl-origin-stats > span:nth-child(2) { animation-delay: 140ms; }
+.bl-origin-map-label > span { animation-delay: 170ms; }
+.bl-origin-map-label > span:nth-child(2) { animation-delay: 210ms; }
+.bl-origin-world { animation-delay: 190ms; }
+.bl-origin-legend { animation-delay: 380ms; }
+.bl-origin-selection > header { animation-delay: 340ms; }
+.bl-origin-empty { animation-delay: 340ms; }
+.bl-origin-unresolved { animation-delay: 560ms; }
+.bl-origin-callout { animation: bl-origin-label-appear .35s ease-out backwards; }
+.bl-origin-leader { stroke-dasharray: 1; animation: bl-origin-line-draw .45s ease-out backwards; animation-delay: inherit; }
+@keyframes bl-origin-content-drop {
+  from { opacity: 0; translate: 0 -12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes bl-origin-label-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bl-origin-line-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .bl-origin-stats > span, .bl-origin-map-label > span, .bl-origin-world,
+  .bl-origin-legend, .bl-origin-selection > header, .bl-origin-bean,
+  .bl-origin-empty, .bl-origin-unresolved, .bl-origin-callout, .bl-origin-leader { animation: none; }
+}
+
 /* 题字逐字轻落：仅动画绘制，不改变横排或竖排标题的占位。 */
 .bl-title-letter {
   display: inline-block;

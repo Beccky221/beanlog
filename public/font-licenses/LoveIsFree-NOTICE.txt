@@ -1,0 +1,7 @@
+Love is free / LOVEISFREE
+Copyright(c) Tianjin ZHUOMAN Technology Co., Ltd.2017
+Copyright(c) 天津卓漫科技有限公司 2017
+
+Source: user-provided Love-is-free.zip, containing Love-is-free-2.ttf.
+Packaged as WOFF2 without modifying glyph outlines or original name records.
+The supplied archive does not contain a separate license document.

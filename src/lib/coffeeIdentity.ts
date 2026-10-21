@@ -121,7 +121,7 @@ export function extractIdentity(raw: string, layout: OcrLine[] = []): ExtractedI
   const labels = '品牌|烘焙商|生产者|海拔|豆子品种|咖啡品种|品种|豆种|黑咖风味|奶咖风味|美式风味|奶制风味|奶制|奶咖|黑咖|加咖|风味描述|风味调性|风味参考|风味|产地信息|产地|产区|国家|处理方式|处理法|加工方式|烘焙程度|烘焙度|净含量|生产日期|保质期|variety\\b|varietal\\b|origin\\b|region\\b|process(?:ing)?\\b|roast\\b'
   const boundary = new RegExp(`(?:${labels})\\s*[:：]`, 'i')
   const isLabel = new RegExp(`^(?:${labels})(?:\\s*[:：]|$|\\s+[a-z])`, 'i')
-  const cleanLine = (value: string) => normalize(value).replace(/[）)】\]]+$/, '').replace(/^[（(【\[|｜丨•●○®*\s:：-]+/, '').replace(/^[1I人针等登生舍急告]\s*(?=产区|豆种|处理法|处理方式|烘焙度|美式风味|奶制风味)/, '')
+  const cleanLine = (value: string) => normalize(value).replace(/[）)】\]]+$/, '').replace(/^[（(【[|｜丨•●○®*\s:：-]+/, '').replace(/^[1I人针等登生舍急告]\s*(?=产区|豆种|处理法|处理方式|烘焙度|美式风味|奶制风味)/, '')
   const validValue = (value: string) => value.length >= 2 && /[a-z\u3400-\u9fff]/i.test(value) && !isLabel.test(value) && !/^(?:variety|varietal|region|origin|process|roast|producer|altitude)\b/i.test(value)
   const geometry = layout.map(line => ({ ...line, text: cleanLine(line.text) }))
   const read = (label: string, accepts: (value: string) => boolean = validValue) => {

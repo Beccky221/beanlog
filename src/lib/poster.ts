@@ -195,6 +195,98 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
   return canvas.toDataURL('image/png')
 }
 
+export interface BeanPosterOptions {
+  includeRating: boolean
+  includeNote: boolean
+}
+
+/** 按真实字宽排版，限制极长输入，避免手机生成过大的画布。 */
+function posterLines(ctx: CanvasRenderingContext2D, text: string, width: number, maxLines: number) {
+  const lines: string[] = []
+  let line = ''
+  for (const char of text.trim()) {
+    if (char === '\n' || (line && ctx.measureText(line + char).width > width)) {
+      lines.push(line)
+      line = ''
+      if (lines.length === maxLines) {
+        let last = lines[maxLines - 1]
+        while (last && ctx.measureText(last + '…').width > width) last = last.slice(0, -1)
+        lines[maxLines - 1] = last + '…'
+        return lines
+      }
+      if (char === '\n') continue
+    }
+    line += char
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+export async function renderBeanPoster(bean: Bean, options: BeanPosterOptions): Promise<string> {
+  await Promise.all([
+    document.fonts.load('400 34px "Coffee Lab Libian"', '咖啡产区风味札记'),
+    document.fonts.load('400 34px "Coffee Lab Source Serif"', 'Coffee Lab'),
+    document.fonts.load('400 64px "YouSheBiaoTiHei"', bean.name),
+    document.fonts.load('400 34px "Sounso Quality"', bean.name + 'Coffee Lab'),
+  ])
+  const canvas = document.createElement('canvas')
+  canvas.width = 1080
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('当前浏览器无法生成图片')
+  const colors = palette()
+  const blocks: { lines: string[]; font: string; color: string; step: number; gap: number }[] = []
+  const add = (text: string | undefined, size: number, title = false, gap = 22, max = 4) => {
+    if (!text?.trim()) return
+    const font = `400 ${size}px ${title ? TITLE : BODY}`
+    ctx.font = font
+    blocks.push({ lines: posterLines(ctx, text, 904, max), font, color: title ? colors.ink : colors.faint, step: size * 1.5, gap })
+  }
+  add(bean.name || '未命名豆袋', 62, true, 12, 3)
+  add(bean.brand, 32, false, 40, 2)
+  add([bean.origin?.trim(), bean.variety?.trim()].filter(Boolean).join(' · '), 32)
+  add([bean.processingMethod?.trim(), bean.roastLevel].filter(Boolean).join(' · '), 32, false, 34)
+  if (bean.flavor?.trim()) { add('黑咖风味', 28, false, 4); add(bean.flavor, 36, true, 28) }
+  if (bean.milkFlavor?.trim()) { add('奶咖风味', 28, false, 4); add(bean.milkFlavor, 36, true, 28) }
+  if (options.includeRating && bean.rating > 0) add(`我的评分  ${Math.min(5, bean.rating)} / 5`, 32, false, 24)
+  if (options.includeNote && bean.note?.trim()) { add('我的札记', 28, false, 4); add(bean.note, 34, true, 28, 8) }
+  const contentTop = 1160
+  canvas.height = Math.ceil(contentTop + blocks.reduce((h, b) => h + b.lines.length * b.step + b.gap, 0) + 150)
+  ctx.fillStyle = colors.bg
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.strokeStyle = colors.frame
+  ctx.lineWidth = 2
+  ctx.strokeRect(28, 28, 1024, canvas.height - 56)
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = colors.ink
+  ctx.font = `400 36px ${TITLE}`
+  ctx.fillText(APP_BRAND_EN, 88, 83)
+  ctx.font = `400 24px ${BODY}`
+  ctx.fillStyle = colors.faint
+  ctx.textAlign = 'right'
+  ctx.fillText('一袋豆子的风味档案', 992, 91)
+  ctx.textAlign = 'left'
+  ctx.fillStyle = colors.frame
+  ctx.fillRect(88, 176, 904, 904)
+  const image = await loadImage(await resolveBeanImage(bean))
+  drawContain(ctx, image, 108, 196, 864, 864)
+  let y = contentTop
+  for (const block of blocks) {
+    ctx.font = block.font
+    ctx.fillStyle = block.color
+    for (const line of block.lines) { ctx.fillText(line, 88, y); y += block.step }
+    y += block.gap
+  }
+  ctx.strokeStyle = colors.frame
+  ctx.beginPath()
+  ctx.moveTo(88, canvas.height - 132)
+  ctx.lineTo(992, canvas.height - 132)
+  ctx.stroke()
+  ctx.fillStyle = colors.faint
+  ctx.font = `400 25px ${BODY}`
+  ctx.fillText('咖啡实验室 · 我的咖啡收藏与饮用档案', 88, canvas.height - 100)
+  return canvas.toDataURL('image/png')
+}
+
 export function downloadDataUrl(dataUrl: string, filename: string) {
   const a = document.createElement('a')
   a.href = dataUrl

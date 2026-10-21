@@ -1,3 +1,4 @@
+import { forgetRecommendationSession, readRecommendationSession } from '@/lib/recommendationAccess'
 import { translateVariety } from '@/lib/coffeeIdentity'
 import type { ExtractedIdentity } from '@/lib/coffeeIdentity'
 import { ROAST_LEVELS, type RoastLevel } from '@/types/bean'
@@ -11,7 +12,7 @@ const MODE_KEY = 'beanlog.vision.mode'
 const DEFAULT_VISION_URL = 'https://beanlog-vision-kfzdniddch.cn-beijing.fcapp.run'
 export const getVisionMode = (): VisionMode => localStorage.getItem(MODE_KEY) === 'local' ? 'local' : 'cloud'
 export const setVisionMode = (mode: VisionMode) => localStorage.setItem(MODE_KEY, mode)
-export const getVisionConfig = () => ({ url: localStorage.getItem(URL_KEY) || DEFAULT_VISION_URL, token: sessionStorage.getItem(TOKEN_KEY) || '' })
+export const getVisionConfig = () => ({ url: localStorage.getItem(URL_KEY) || DEFAULT_VISION_URL })
 
 export function visionUrl(value: string) {
   let url: URL
@@ -21,12 +22,10 @@ export function visionUrl(value: string) {
   return url.origin
 }
 
-export function saveVisionConfig(url: string, token: string) {
+export function saveVisionConfig(url: string) {
   const normalized = visionUrl(url)
-  if (token.trim().length < 16 || /[\s\u0080-\uffff]/.test(token.trim())) throw new Error('服务口令至少16位，请使用英文字母、数字或符号。')
-  if (token.trim().startsWith('sk-')) throw new Error('这里填写自设的服务口令，千问 API Key 只填在阿里云后端。')
   localStorage.setItem(URL_KEY, normalized)
-  sessionStorage.setItem(TOKEN_KEY, token.trim())
+  sessionStorage.removeItem(TOKEN_KEY)
   setVisionMode('cloud')
 }
 
@@ -37,14 +36,19 @@ export function clearVisionConfig() {
 
 async function request(path: string, signal: AbortSignal, image?: string) {
   const config = getVisionConfig()
-  if (!config.url || !config.token) throw new Error('请先在“我的 → 千问识图设置”填写服务地址和口令。重新打开 APP 后需再填口令。')
+  const session = readRecommendationSession()
+  if (!session) throw new Error('请先验证邀请码，即可同时使用千问识图和风味捕手。')
   try {
     const response = await fetch(visionUrl(config.url) + path, { method: image ? 'POST' : 'GET',
-      headers: { Authorization: `Bearer ${config.token}`, ...(image ? { 'Content-Type': 'application/json' } : {}) },
+      headers: { Authorization: `Bearer ${session.token}`, ...(image ? { 'Content-Type': 'application/json' } : {}) },
       ...(image ? { body: JSON.stringify({ image }) } : {}), signal,
       credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', redirect: 'error' })
     let data
     try { data = await response.json() } catch { throw new Error('识图服务没有返回 JSON，请检查函数地址和部署入口。') }
+    if (response.status === 401) {
+      forgetRecommendationSession()
+      throw new Error('识图授权未生效或已过期，请重新验证邀请码；若仍出现此提示，请邀请人更新 vision 后端及邀请配置。')
+    }
     if (!response.ok) throw new Error(typeof data?.error === 'string' ? data.error : `识图服务暂时不可用（${response.status}）。`)
     return data
   } catch (error) {
@@ -61,7 +65,7 @@ export async function checkVisionConfig() {
 }
 
 export async function recognizeCloudPhoto(photo: Blob, report: (text: string) => void, signal: AbortSignal, crop?: ImageCrop): Promise<{ fields: VisionIdentity; warnings: string[]; text: string }> {
-  if (!getVisionConfig().url || !getVisionConfig().token) throw new Error('请先在“我的 → 千问识图设置”配置服务地址和口令。')
+  if (!readRecommendationSession()) throw new Error('请先验证邀请码，即可同时使用千问识图和风味捕手。')
   if (photo.size > 30 * 1024 * 1024) throw new Error('原图超过30MB，请先裁剪或缩小图片。')
   report('正在整理识别图片…')
   const canvas = await readableImage(photo, crop ? { ...crop, vertical: false } : undefined)

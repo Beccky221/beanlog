@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ChevronLeft, ImagePlus, Minus, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ImagePlus, Crop, Minus, Plus, Trash2 } from 'lucide-react'
 import type { Bean, DrinkStatus, RoastLevel } from '@/types/bean'
 import { ROAST_LEVELS, DRINK_STATUS } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
@@ -10,6 +10,8 @@ import { BrewCard } from '@/components/BrewCard'
 import { BeanThumb } from '@/components/BeanThumb'
 import { PhotoRecognition } from '@/components/PhotoRecognition'
 import { processPhotoFile } from '@/lib/image'
+import { getPhoto } from '@/lib/idb'
+import { BeanPhotoCropper } from '@/components/BeanPhotoCropper'
 
 interface BeanDetailProps {
   bean: Bean
@@ -53,6 +55,7 @@ export function BeanDetail({
 }: BeanDetailProps) {
   const [draft, setDraft] = useState<Bean>(bean)
   const [photoBusy, setPhotoBusy] = useState(false)
+  const [cropSource, setCropSource] = useState<Blob | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   /** 本次编辑中新存进来的照片，取消/换图时要回收 */
   const tempPhotos = useRef<string[]>([])
@@ -74,52 +77,74 @@ export function BeanDetail({
     const t = e.changedTouches[0]
     const dx = t.clientX - s.x
     const dy = t.clientY - s.y
-    if (dx < -70 && Math.abs(dx) > Math.abs(dy) * 1.5) onBack()
+    if (dx < -70 && Math.abs(dx) > Math.abs(dy) * 1.5) handleBack()
   }
 
   const set = <K extends keyof Bean>(key: K, value: Bean[K]) =>
     setDraft((d) => ({ ...d, [key]: value }))
 
+  const savePhoto = async (blob: Blob, original?: Blob) => {
+    setPhotoBusy(true)
+    try {
+      const { id, originalId } = await onSavePhoto(blob, original)
+      setDraft(current => ({ ...current, photoId: id, originalPhotoId: originalId }))
+      tempPhotos.current.push(id, ...(originalId ? [originalId] : []))
+      return true
+    } catch {
+      window.alert('照片保存失败，可能是本地空间不够了。可以先去「我的 → 数据管理」导出备份。')
+      return false
+    } finally { setPhotoBusy(false) }
+  }
+
+  // 识图照片仍按原有流程设置，之后也可以用“编辑照片”裁切。
   const handlePhoto = async (file: File | undefined) => {
     if (!file || photoBusy) return false
     setPhotoBusy(true)
     try {
       const processed = await processPhotoFile(file)
-      const { id, originalId } = await onSavePhoto(processed.blob, processed.original)
-      // 换图时把旧照片标记为待回收
-      const previous = [draft.photoId, draft.originalPhotoId]
-      setDraft((d) => ({ ...d, photoId: id, originalPhotoId: originalId }))
-      const reusable = previous.filter((p): p is string => !!p && !tempPhotos.current.includes(p))
-      if (reusable.length) onDropPhotos(reusable)
-      tempPhotos.current.push(id, ...(originalId ? [originalId] : []))
-      return true
-    } catch (err) {
-      window.alert('照片保存失败，可能是本地空间不够了。可以先去「我的 → 数据管理」导出备份。')
-      console.error(err)
-      return false
-    } finally {
-      setPhotoBusy(false)
-    }
+      return await savePhoto(processed.blob, processed.original)
+    } finally { setPhotoBusy(false) }
   }
 
-  /** 保存或取消时，回收本次编辑产生但没被采用的临时照片 */
-  const commitTempPhotos = () => {
-    const kept = new Set([draft.photoId, draft.originalPhotoId].filter(Boolean))
-    const orphans = tempPhotos.current.filter((id) => !kept.has(id))
-    if (orphans.length) onDropPhotos(orphans)
-    tempPhotos.current = []
+  const chooseCropPhoto = async (file: File | undefined) => {
+    if (!file || photoBusy) return
+    setPhotoBusy(true)
+    try {
+      // 完整来源先压缩到适合手机存储的尺寸，再交给裁切器取景。
+      const processed = await processPhotoFile(file)
+      setCropSource(processed.blob)
+    } catch { window.alert('图片读取失败，请重新选择。') }
+    finally { setPhotoBusy(false) }
+  }
+
+  const editPhoto = async () => {
+    if (photoBusy) return
+    setPhotoBusy(true)
+    try {
+      const original = draft.originalPhotoId ? await getPhoto(draft.originalPhotoId) : undefined
+      const source = original || (draft.photoId ? await getPhoto(draft.photoId) : undefined)
+      if (source) setCropSource(source)
+      else window.alert('没有找到这张照片，请重新从相册选择。')
+    } catch { window.alert('图片读取失败，请稍后重试。') }
+    finally { setPhotoBusy(false) }
   }
 
   const handleBack = () => {
-    // 新建时直接返回 = 放弃这袋豆子，顺手删掉刚存的照片
-    if (isNew) onDropPhotos(tempPhotos.current)
-    else commitTempPhotos()
+    if (photoBusy) return
+    // 未保存的换图不删除豆库正在使用的旧照片。
+    onDropPhotos(tempPhotos.current)
+    tempPhotos.current = []
     onBack()
   }
 
   const handleSave = () => {
-    commitTempPhotos()
+    if (photoBusy || cropSource) return
+    const kept = new Set([draft.photoId, draft.originalPhotoId].filter(Boolean))
+    const unused = [...tempPhotos.current, bean.photoId, bean.originalPhotoId]
+      .filter((id): id is string => !!id && !kept.has(id))
     onSave(draft)
+    if (unused.length) onDropPhotos([...new Set(unused)])
+    tempPhotos.current = []
   }
 
   // ---- 研磨信息 ----
@@ -169,12 +194,14 @@ export function BeanDetail({
   }
 
   return (
-    <div className="bl-bean-detail pb-16" onTouchStart={onTouchStartBack} onTouchEnd={onTouchEndBack}>
+    <>
+    <div inert={cropSource !== null} className="bl-bean-detail pb-16" onTouchStart={onTouchStartBack} onTouchEnd={onTouchEndBack}>
       {/* 顶栏 */}
       <div className="sticky top-0 z-20 bg-[var(--c-app)]/90 backdrop-blur px-5 pt-5 pb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={handleBack}
+          disabled={photoBusy}
           aria-label={backLabel ?? '返回'}
           autoFocus={!!backLabel}
           className="w-10 h-10 rounded-full bg-white shadow-[0_2px_10px_rgb(var(--c-shadow) / 0.1)] flex items-center justify-center text-[var(--c-ink)] active:scale-95 transition-transform"
@@ -211,6 +238,7 @@ export function BeanDetail({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
+          disabled={photoBusy}
           aria-label="上传豆袋照片"
           className="relative w-full rounded-2xl bg-[var(--c-photo-well)] border border-[var(--c-border)] h-[240px] flex items-center justify-center overflow-hidden active:scale-[0.99] transition-transform"
         >
@@ -231,15 +259,16 @@ export function BeanDetail({
         {photoBusy && (
           <p className="text-[12px] text-[var(--c-ink-faint)] mt-2 text-center">正在处理照片…</p>
         )}
-        <div className="flex items-center justify-end mt-2">
+        <div className="flex items-center justify-end gap-4 mt-2">
+          {draft.photoId && <button type="button" disabled={photoBusy} onClick={() => void editPhoto()} className="flex items-center gap-1.5 min-h-10 text-[12px] text-[var(--c-primary)] disabled:opacity-40"><Crop size={14} />编辑照片</button>}
           {draft.photoId && (
             <button
               type="button"
               onClick={() => {
-                onDropPhotos([draft.photoId, draft.originalPhotoId])
                 setDraft((d) => ({ ...d, photoId: undefined, originalPhotoId: undefined }))
               }}
-              className="text-[11.5px] text-[var(--c-danger)] active:opacity-70"
+              disabled={photoBusy}
+              className="text-[11.5px] min-h-10 text-[var(--c-danger)] active:opacity-70 disabled:opacity-40"
             >
               移除照片
             </button>
@@ -251,7 +280,7 @@ export function BeanDetail({
           accept="image/*"
           className="hidden"
           onChange={(e) => {
-            handlePhoto(e.target.files?.[0])
+            void chooseCropPhoto(e.target.files?.[0])
             e.target.value = ''
           }}
         />
@@ -496,5 +525,12 @@ export function BeanDetail({
         </div>
       )}
     </div>
+    {cropSource && <BeanPhotoCropper source={cropSource} onCancel={() => setCropSource(null)}
+      onApply={async (photo, original) => {
+        const saved = await savePhoto(photo, original)
+        if (saved) setCropSource(null)
+        return saved
+      }} />}
+    </>
   )
 }

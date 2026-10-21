@@ -55,10 +55,10 @@ export function OriginMap({ beans, onBack, onOpenBean }: { beans: Bean[]; onBack
             </g>
           ))}
           </g>
-          {callouts.map(marker => (
-            <g key={marker.origin.id} className="bl-origin-callout" role="button" tabIndex={0} aria-label={`${marker.origin.name}，${marker.beans.length} 袋`} aria-pressed={selected?.origin.id === marker.origin.id}
+          {callouts.map((marker, index) => (
+            <g key={marker.origin.id} className="bl-origin-callout" style={{ animationDelay: `${300 + Math.min(index, 6) * 55}ms` }} role="button" tabIndex={0} aria-label={`${marker.origin.name}，${marker.beans.length} 袋`} aria-pressed={selected?.origin.id === marker.origin.id}
               onClick={() => setSelectedId(marker.origin.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(marker.origin.id) } }}>
-              <path className="bl-origin-leader" d={`M${180 + marker.x * .7} ${mapTop + marker.y * .7} Q${marker.left ? 200 : 665} ${marker.labelY} ${marker.left ? 177 : 689} ${marker.labelY} L${marker.left ? 167 : 699} ${marker.labelY}`} />
+              <path className="bl-origin-leader" pathLength="1" d={`M${180 + marker.x * .7} ${mapTop + marker.y * .7} Q${marker.left ? 200 : 665} ${marker.labelY} ${marker.left ? 177 : 689} ${marker.labelY} L${marker.left ? 167 : 699} ${marker.labelY}`} />
               <circle cx={marker.left ? 167 : 699} cy={marker.labelY} r="2.5" fill="currentColor" />
               <rect className="bl-origin-callout-hit" x={marker.left ? 0 : 704} y={marker.labelY - 34} width={marker.left ? 160 : 190} height="78" rx="12" />
               <text className="bl-origin-callout-name" x={marker.left ? 153 : 711} y={marker.labelY - 4} textAnchor={marker.left ? 'end' : 'start'}>{marker.origin.name}</text>
@@ -72,7 +72,7 @@ export function OriginMap({ beans, onBack, onOpenBean }: { beans: Bean[]; onBack
       {groups.length > 0 ? <>
         {selected && <section className="bl-origin-selection" aria-live="polite">
           <header><h2>{selected.origin.name}</h2><span>{selected.beans.length} 袋收藏</span></header>
-          {selected.beans.map(bean => <button key={bean.id} type="button" className="bl-origin-bean" onClick={() => onOpenBean(bean.id)}><span><strong>{bean.name}</strong><small>{[bean.brand, bean.origin].filter(Boolean).join(' · ')}</small></span><ArrowUpRight size={16} aria-hidden /></button>)}
+          {selected.beans.map((bean, index) => <button key={bean.id} type="button" className="bl-origin-bean" style={{ animationDelay: `${400 + Math.min(index, 5) * 55}ms` }} onClick={() => onOpenBean(bean.id)}><span><strong>{bean.name}</strong><small>{[bean.brand, bean.origin].filter(Boolean).join(' · ')}</small></span><ArrowUpRight size={16} aria-hidden /></button>)}
         </section>}
       </> : <div className="bl-origin-empty"><MapPin size={24} /><p>{beans.length ? '给豆子添一个来处' : '第一袋豆子的旅程，从这里开始'}</p><span>在豆袋的“产区”中填写国家或常见产区，地图就会亮起。</span></div>}
 
