@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Images, ScanText } from 'lucide-react'
+import { Camera, Images } from 'lucide-react'
 import type { Bean, RoastLevel } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import { extractIdentity, recognizeLocalPhoto } from '@/lib/localOcr'
@@ -129,17 +129,13 @@ export function PhotoRecognition({ bean, onApply, onUsePhoto }: { bean: Bean; on
     setStatus('已填入身份卡，点击页面右上角“保存”完成记录')
   }
 
-  const sourceControls = <>
-<button type="button" disabled={busy || savingPhoto} aria-expanded={chooseSource} aria-controls="recognition-source-options" onClick={() => setChooseSource(open => !open)}
-        className="mt-2 mx-auto w-fit px-3 py-2 rounded-full flex items-center justify-center gap-1.5 text-[12px] text-[var(--c-accent)] disabled:opacity-50"><ScanText size={15} />{busy ? '正在识别…' : '图片识别'}</button>
-      {chooseSource && <div id="recognition-source-options" role="group" aria-label="选择识别图片来源" className="mt-3 rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-3">
-        <div className="flex justify-center gap-3 py-2">
-          <button type="button" onClick={() => { setChooseSource(false); cameraInput.current?.click() }} className="px-4 py-2.5 rounded-full flex items-center gap-2 text-[13px] text-[var(--c-accent)]"><Camera size={16} />拍照</button>
-          <button type="button" onClick={() => { setChooseSource(false); albumInput.current?.click() }} className="px-4 py-2.5 rounded-full flex items-center gap-2 text-[13px] text-[var(--c-accent)]"><Images size={16} />从相册选图</button>
-        </div>
-        <button type="button" onClick={() => setChooseSource(false)} className="block mx-auto mt-1 px-3 py-1.5 rounded-full text-[12px] text-[var(--c-ink-faint)]">取消</button>
-      </div>}
-  </>
+  const sourceControls = <div id="recognition-source-options" role="group" aria-label="选择识别图片来源" className="mt-3 rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-3">
+    <div className="flex justify-center gap-3 py-2">
+      <button type="button" onClick={() => { setChooseSource(false); cameraInput.current?.click() }} className="px-4 py-2.5 rounded-full flex items-center gap-2 text-[13px] text-[var(--c-accent)]"><Camera size={16} />拍照</button>
+      <button type="button" onClick={() => { setChooseSource(false); albumInput.current?.click() }} className="px-4 py-2.5 rounded-full flex items-center gap-2 text-[13px] text-[var(--c-accent)]"><Images size={16} />从相册选图</button>
+    </div>
+    <button type="button" onClick={() => setChooseSource(false)} className="block mx-auto mt-1 px-3 py-1.5 rounded-full text-[12px] text-[var(--c-ink-faint)]">取消</button>
+  </div>
 
   return (
     <div className="mt-3">
@@ -148,10 +144,9 @@ export function PhotoRecognition({ bean, onApply, onUsePhoto }: { bean: Bean; on
       <input ref={albumInput} type="file" accept="image/*" className="hidden" aria-label="从相册选择用于识别的图片"
         onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void start(file) }} />
       <div className="flex justify-center gap-2 mt-3" role="group" aria-label="选择识别方式">
-        {([{ id: 'cloud', label: '千问识图' }, { id: 'local', label: '本机识别' }] as const).map(item => <button key={item.id} type="button" disabled={busy || savingPhoto} aria-pressed={mode === item.id} onClick={() => { setMode(item.id); setVisionMode(item.id); setValues(null); setRaw(''); setWarnings([]); setError(''); setStatus('') }} className={'px-4 py-2 rounded-full text-[12px] disabled:opacity-50 ' + (mode === item.id ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'text-[var(--c-ink-soft)]')}>{item.label}</button>)}
+        {([{ id: 'cloud', label: '千问识图' }, { id: 'local', label: '本机识别' }] as const).map(item => <button key={item.id} type="button" disabled={busy || savingPhoto} aria-pressed={mode === item.id} aria-expanded={chooseSource && mode === item.id} aria-controls="recognition-source-options" onClick={() => { setMode(item.id); setVisionMode(item.id); setValues(null); setRaw(''); setWarnings([]); setError(''); setStatus(''); setChooseSource(true) }} className={'px-4 py-2 rounded-full text-[12px] disabled:opacity-50 ' + (mode === item.id ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'text-[var(--c-ink-soft)]')}>{item.label}</button>)}
       </div>
-      <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--c-ink-faint)]">{mode === 'cloud' ? '选择拍照或相册图片后，会将该图发送至你的识图服务和阿里云千问。首次验证邀请码后即可识图，与风味捕手共用授权。' : '拍摄包装标签，或从相册选择信息图来识别。首次使用需联网下载语言包，照片只在本机处理。'}</p>
-      {mode === 'cloud' ? <RecommendationAccess inline>{() => sourceControls}</RecommendationAccess> : sourceControls}
+      {chooseSource && (mode === 'cloud' ? <RecommendationAccess inline>{() => sourceControls}</RecommendationAccess> : sourceControls)}
       {mode === 'local' && <label className="mt-2 flex items-center gap-2 text-[12px] text-[var(--c-ink-soft)]">
         <input type="checkbox" checked={enhance} disabled={busy} onChange={(e) => setEnhance(e.target.checked)} />实拍增强（试用）
       </label>}

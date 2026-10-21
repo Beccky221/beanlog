@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 /* 产地手记：稀疏散点世界地图与产国收藏清单。 */
+:root { --c-map-selected: #A77C72; }
+:root[data-theme='blue'] { --c-map-selected: #AC8072; }
+:root[data-theme='purple'] { --c-map-selected: #85916E; }
+:root[data-theme='pink'] { --c-map-selected: #6C918C; }
+:root[data-theme='white'] { --c-map-selected: #71928E; }
+:root[data-theme='gray'] { --c-map-selected: #A98779; }
 .bl-origin-page { padding: calc(20px + var(--safe-t)) 20px calc(36px + var(--safe-b)); }
 .bl-origin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .bl-origin-header > button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--c-line); border-radius: 50%; background: var(--c-surface); color: var(--c-ink); }
@@ -29,13 +35,18 @@
 .bl-origin-callout-name { fill: currentColor; font-family: var(--font-body); font-size: 26px; }
 .bl-origin-callout-count { fill: currentColor; font-family: var(--font-body); font-size: 21px; opacity: .7; }
 .bl-origin-callout-hit { fill: transparent; stroke: transparent; stroke-width: 1.5; }
-.bl-origin-callout[aria-pressed='true'] { color: var(--c-primary); }
-.bl-origin-callout[aria-pressed='true'] .bl-origin-leader { opacity: .85; stroke-width: 1.8; }
-.bl-origin-callout:focus-visible { outline: none; }
-.bl-origin-callout:focus-visible .bl-origin-callout-hit { stroke: var(--c-primary); }
+.bl-origin-callout[aria-pressed='true'], .bl-origin-callout:focus-visible { color: var(--c-map-selected); }
+.bl-origin-callout[aria-pressed='true'] .bl-origin-leader,
+.bl-origin-callout:focus-visible .bl-origin-leader { opacity: 1; stroke-width: 4.5; }
+.bl-origin-callout[aria-pressed='true'] .bl-origin-callout-name,
+.bl-origin-callout:focus-visible .bl-origin-callout-name { stroke: currentColor; stroke-width: .65; paint-order: stroke fill; }
+.bl-origin-callout[aria-pressed='true'] .bl-origin-callout-count,
+.bl-origin-callout:focus-visible .bl-origin-callout-count { opacity: 1; stroke: currentColor; stroke-width: .3; paint-order: stroke fill; }
+.bl-origin-callout:focus, .bl-origin-callout:focus-visible { outline: none; }
+.bl-origin-callout .bl-origin-callout-hit { stroke: none; }
 .bl-origin-selection { margin-top: 24px; }
 .bl-origin-selection > header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--c-line); }
-.bl-origin-selection h2 { font-size: 21px; }
+.bl-origin-selection h2 { font-size: 21px; color: var(--c-map-selected); }
 .bl-origin-selection > header > span { font-size: 11px; color: var(--c-ink-faint); }
 .bl-origin-bean, .bl-origin-unresolved button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 2px; text-align: left; border-bottom: 1px solid var(--c-line); }
 .bl-origin-bean > span, .bl-origin-unresolved button > span { min-width: 0; overflow-wrap: anywhere; }
@@ -764,6 +775,7 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   min-width: 0;
 }
 .bl-bean-thumb {
+  position: relative;
   width: 100% !important;
   height: auto !important;
   aspect-ratio: 1 / 1;
@@ -772,6 +784,25 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   background-color: var(--c-photo-well);
   background-image: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--c-surface) 60%, transparent), transparent 72%);
 }
+.bl-bean-share {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--c-primary);
+  background: color-mix(in srgb, var(--c-surface) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-primary) 12%, transparent);
+  backdrop-filter: blur(6px);
+  transition: background .18s ease, opacity .18s ease;
+}
+.bl-bean-share:hover { background: var(--c-surface); }
+.bl-bean-share:active { opacity: .65; }
+.bl-bean-share:focus-visible { outline: 2px solid var(--c-primary); outline-offset: -3px; }
 .bl-bean-card-copy { width: 100%; padding: 0 1px 2px; }
 .bl-bean-card-copy > div:first-child { display: block; }
 .bl-bean-card h3 { width: 100%; font-size: 14px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; word-break: normal; }

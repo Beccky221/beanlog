@@ -50,8 +50,8 @@ export function OriginMap({ beans, onBack, onOpenBean }: { beans: Bean[]; onBack
               onClick={() => setSelectedId(marker.origin.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(marker.origin.id) } }}>
               <title>{marker.origin.name} · {marker.beans.length} 袋</title>
               <circle cx={marker.x} cy={marker.y} r="21" fill="transparent" />
-              <circle className="bl-origin-marker-ring" cx={marker.x} cy={marker.y} r="12" fill="none" stroke="var(--c-primary)" strokeWidth="1.5" opacity={selected?.origin.id === marker.origin.id ? .8 : 0} />
-              <circle cx={marker.x} cy={marker.y} r={4 + Math.min(4, Math.sqrt(marker.beans.length))} fill="var(--c-primary)" opacity={.35 + .6 * marker.beans.length / max} stroke="var(--c-surface)" strokeWidth="1.5" />
+              <circle className="bl-origin-marker-ring" cx={marker.x} cy={marker.y} r="12" fill="none" stroke="var(--c-map-selected)" strokeWidth="2.2" opacity={selected?.origin.id === marker.origin.id ? .9 : 0} />
+              <circle cx={marker.x} cy={marker.y} r={4 + Math.min(4, Math.sqrt(marker.beans.length))} fill={selected?.origin.id === marker.origin.id ? 'var(--c-map-selected)' : 'var(--c-primary)'} opacity={selected?.origin.id === marker.origin.id ? 1 : .35 + .6 * marker.beans.length / max} stroke="var(--c-surface)" strokeWidth="1.5" />
             </g>
           ))}
           </g>

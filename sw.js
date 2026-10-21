@@ -2,10 +2,10 @@
    - 页面导航：网络优先，离线时回退缓存
    - 静态资源（JS/CSS/图标）：缓存优先
    改动静态资源后记得把 CACHE 版本号 +1，否则老用户会继续用缓存的旧文件。 */
-const CACHE = 'beanlog-v31'
+const CACHE = 'beanlog-v32'
 const ENTRY = './index.html'
 /** 安装时预缓存，保证断网也能打开 */
-const PRECACHE = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./icon.png","./apple-touch-icon-handpaint-v2.png","./app-icon-handpaint-v2-192.png","./app-icon-handpaint-v2-512.png","./app-icon-handpaint-v2-maskable.png","./manifest-handpaint-v2.webmanifest","./assets/index-DEDPOu15.js","./assets/index-B4i8t1tj.css","./assets/JingDianLibianJian-Regular-BhJfkxPo.woff2","./assets/SmileySans-Oblique-K8hpreXB.woff2","./assets/SounsoQuality-Regular-oB4xdbzq.woff2","./assets/SourceSerif4-Regular-BNbBs0kC.woff2","./assets/YouSheBiaoTiHei-Regular-CYzPTNhu.woff2"]
+const PRECACHE = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./icon.png","./apple-touch-icon-handpaint-v2.png","./app-icon-handpaint-v2-192.png","./app-icon-handpaint-v2-512.png","./app-icon-handpaint-v2-maskable.png","./manifest-handpaint-v2.webmanifest","./assets/index-BH-ss2f9.js","./assets/index-xyQ5bvb8.css","./assets/JingDianLibianJian-Regular-BhJfkxPo.woff2","./assets/SmileySans-Oblique-K8hpreXB.woff2","./assets/SounsoQuality-Regular-oB4xdbzq.woff2","./assets/SourceSerif4-Regular-BNbBs0kC.woff2","./assets/YouSheBiaoTiHei-Regular-CYzPTNhu.woff2"]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -279,6 +279,12 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
                   bean={bean}
                   className="w-full h-full object-contain"
                 />
+                <button type="button" aria-label={`分享${bean.name}的海报`} title="分享海报" aria-haspopup="dialog"
+                  onTouchStart={event => event.stopPropagation()}
+                  onClick={event => { event.stopPropagation(); setOpenId(null); onSharePoster(bean.id) }}
+                  className="bl-bean-share">
+                  <Share2 size={15} aria-hidden />
+                </button>
               </div>
               <div className="bl-bean-card-copy min-w-0 flex-1 py-0.5 text-left">
                 <div className="flex items-start justify-between gap-2">
@@ -315,12 +321,6 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
                     )}
                   </div>
                 )}
-                <button type="button" aria-label={`分享${bean.name}的海报`} aria-haspopup="dialog"
-                  onTouchStart={event => event.stopPropagation()}
-                  onClick={event => { event.stopPropagation(); setOpenId(null); onSharePoster(bean.id) }}
-                  className="mt-3 pt-2.5 border-t border-[var(--c-border)] w-full flex items-center justify-center gap-1.5 min-h-10 text-[12px] text-[var(--c-primary)] active:opacity-60">
-                  <Share2 size={14} aria-hidden /> 分享海报
-                </button>
               </div>
             </div>
           </SwipeableItem>
