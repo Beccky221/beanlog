@@ -2,7 +2,7 @@
    这里的 effect 是把「外部缓存/异步读到的值」同步进 state（照片地址、滑动位置、
    海报渲染结果），setState 都带了相同性判断，不会引起级联渲染。 */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Heart, Bookmark, Plus, Search, Trash2, X, Images } from 'lucide-react'
+import { Heart, Bookmark, Plus, Search, Trash2, X, MapPin } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { ROAST_LEVELS } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
@@ -184,7 +184,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
               <span className="bl-library-count-value" aria-hidden>{String(beans.length).padStart(2, '0')}<span>袋</span></span>
             </div>
             <button id="bean-library-wall" type="button" onClick={onOpenWall} aria-haspopup="dialog" className="bl-library-wall-toggle h-10 rounded-full bg-[var(--c-surface)] text-[var(--c-primary)] flex items-center justify-center gap-1.5 px-3 text-[12px] whitespace-nowrap">
-              <Images size={16} aria-hidden />展示墙
+              <MapPin size={16} aria-hidden />产地地图
             </button>
             <button
               ref={searchButton}

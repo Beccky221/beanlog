@@ -1,5 +1,51 @@
 # Handwritten typeface
 
+## Current Latin body and numeric font (2026-10-20)
+
+Source Serif 4 Regular (weight 400, text optical size) is bundled as
+`SourceSerif4-Regular.woff2`, downloaded unchanged from Adobe's official
+release branch: https://github.com/adobe-fonts/source-serif/tree/release/WOFF2/TTF
+Original file: `SourceSerif4-Regular.ttf.woff2`. Distributed under SIL OFL 1.1;
+the original license is retained in `SourceSerif4-OFL.md` and public font notices.
+English detail text, card numbers, input values, poster captions and placeholder
+Latin lettering use this font; Chinese body text remains 经典隶变简 and large
+titles retain the existing display families. Body numbers use lining tabular
+figures. The font is included in the offline single-file HTML.
+
+## Previous card Latin letters and digits (2026-10-19)
+
+`LoveIsFree-Regular.woff2` is packaged from the user's `Love-is-free.zip`
+(`Love-is-free-2.ttf`, internal family LOVEISFREE / Love is free).
+Original outlines and font names are unchanged. Replaced at the user’s request
+by the system sans-serif style used for COLLECTION; this font is no longer
+referenced by the current interface. Previously used for Latin letters and
+digits in the home directory cards, bean-library cards and bean-detail fields, with a unicode range
+that preserves Chinese title/body typography. English and digit glyph coverage
+was checked before packaging. See `LoveIsFree-NOTICE.txt` for source attribution.
+
+## Current UI font roles (2026-10-19)
+
+Latest Chinese body selection: user-supplied **经典隶变简**, from
+`经典隶变简.zip` (2026-10-19). Bundled as `JingDianLibianJian-Regular.woff2`,
+via a CJK-only font face named `Coffee Lab Libian`. Latin letters and numbers
+retain the system sans-serif stack. Page and directory titles are unchanged.
+The font's original outlines and name records are retained. Its legacy format-4
+cmap contains out-of-bounds entries; the webfont rebuilds this table from valid
+original mappings, omitting invalid entries. The archive's website copyright
+notice is retained in `JingDianLibianJian-NOTICE.txt`; it is not an OFL font.
+The webfont is bundled into the single-file HTML for phone and offline display.
+
+Page headings and the directory's large chapter titles retain Sounso Quality
+for Latin letters and YouSheBiaoTiHei for Chinese. Detail text, small labels,
+buttons, inputs and parameter numbers use a regular-weight system sans-serif
+stack: Apple system / Segoe UI, PingFang SC / Hiragino Sans GB / Noto Sans CJK SC /
+Microsoft YaHei, with a generic sans-serif fallback. English detail text follows
+the same stack. These fonts are supplied by the device, require no download,
+and remain available offline. Poster captions and placeholder-label details
+use the same clean sans-serif style. Smiley Sans remains only as a title fallback.
+
+The sections below document earlier font choices and bundled font sources.
+
 ## Current English typeface
 
 Sounso Quality (internal name: A019-Sounso Quality), copyright Sichuan SounSo

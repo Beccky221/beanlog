@@ -55,7 +55,7 @@ export function RecommendationAccess({ onBack, children }: { onBack: () => void;
     <div className="px-6 pt-8">
       <div className="rounded-2xl border border-[var(--c-line)] bg-[var(--c-surface)] p-6">
         <span className="w-12 h-12 flex items-center justify-center rounded-full bg-[var(--c-soft)] text-[var(--c-accent)]"><LockKeyhole size={23} /></span>
-        <h3 className="mt-5 text-[22px] text-[var(--c-ink)]">凭邀请，找下一袋喜欢</h3>
+        <h3 className="bl-display-title mt-5 text-[22px] text-[var(--c-ink)]">凭邀请，找下一袋喜欢</h3>
         <p className="mt-3 text-[13px] leading-relaxed text-[var(--c-ink-faint)]">商品豆与烘焙商推荐目前向受邀用户开放。输入邀请人提供的邀请码，即可进入。</p>
         <form className="mt-5" onSubmit={event => { event.preventDefault(); void unlock() }}>
           <label className="block text-[12px] text-[var(--c-ink-soft)]">邀请码

@@ -5,7 +5,7 @@ import { bagImage } from '@/lib/bagImage'
 import { APP_BRAND_EN, placeholderBrand } from '@/lib/brand'
 import { cssVar } from '@/lib/theme'
 
-const SERIF = `'Sounso Quality','Smiley Sans',sans-serif`
+const BODY = `'Coffee Lab Libian','Coffee Lab Source Serif',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif`
 const TITLE = `'Sounso Quality','YouSheBiaoTiHei','Smiley Sans',sans-serif`
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -88,7 +88,8 @@ function drawContain(
 export async function renderPoster(beans: Bean[]): Promise<string> {
   // 等字体准备好再绘制，确保保存的海报和界面使用同样的标题与正文字体。
   await Promise.all([
-    document.fonts.load('400 22px "Smiley Sans"', '冲煮参数 18 93'),
+    document.fonts.load('400 22px "Coffee Lab Source Serif"', 'Coffee Lab 18 36 93'),
+    document.fonts.load('400 22px "Coffee Lab Libian"', '咖啡豆子产区'),
     document.fonts.load('400 68px "YouSheBiaoTiHei"', '我的咖啡收藏'),
     document.fonts.load('400 22px "Sounso Quality"', 'COFFEE LAB'),
   ])
@@ -123,7 +124,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
 
   // 顶部刊头
   ctx.fillStyle = faint
-  ctx.font = `500 22px ${SERIF}`
+  ctx.font = `500 22px ${BODY}`
   ctx.textBaseline = 'alphabetic'
   const headerY = 96
   ctx.letterSpacing = '6px'
@@ -140,7 +141,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
   ctx.fillText('我的咖啡收藏', margin, headerY + 96)
 
   ctx.fillStyle = faint
-  ctx.font = `500 20px ${SERIF}`
+  ctx.font = `500 20px ${BODY}`
   ctx.letterSpacing = '5px'
   ctx.fillText('A LITTLE ARCHIVE OF GOOD COFFEE', margin, headerY + 146)
   ctx.letterSpacing = '0px'
@@ -167,7 +168,7 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
 
     // 编号 + 名称（名字太长分两行，比截断成省略号好认）
     ctx.fillStyle = faint
-    ctx.font = `400 20px ${SERIF}`
+    ctx.font = `400 20px ${BODY}`
     ctx.fillText(String(i + 1).padStart(2, '0'), cx + 18, cy + 252)
 
     ctx.fillStyle = ink
@@ -181,11 +182,11 @@ export async function renderPoster(beans: Bean[]): Promise<string> {
   // 底部落款
   const footY = H - 78
   ctx.fillStyle = faint
-  ctx.font = `400 22px ${SERIF}`
+  ctx.font = `400 22px ${BODY}`
   ctx.fillText('留住风味，也留住生活。', margin, footY)
 
   ctx.letterSpacing = '5px'
-  ctx.font = `500 20px ${SERIF}`
+  ctx.font = `500 20px ${BODY}`
   const brand = APP_BRAND_EN
   const brandW = ctx.measureText(brand).width
   ctx.fillText(brand, W - margin - brandW - 30, footY)

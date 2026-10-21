@@ -4,14 +4,14 @@
    （?action=new / ?action=daily）。两处在写入前都做了判断，不会造成级联渲染。 */
 import { useEffect, useRef, useState } from 'react'
 import { logoUrl } from '@/lib/logo'
-import { APP_NAME, APP_POSITIONING, APP_BRAND_EN } from '@/lib/brand'
+import { APP_NAME, APP_BRAND_EN } from '@/lib/brand'
 import { ArrowLeft, ArrowUpRight, AlertTriangle, X } from 'lucide-react'
 import type { Bean } from '@/types/bean'
 import { useStore } from '@/lib/store'
 import { applyTheme, persistTheme, readStoredTheme, type ThemeName } from '@/lib/theme'
 import { BeanLibrary } from '@/sections/BeanLibrary'
 import { BeanDetail } from '@/sections/BeanDetail'
-import { PosterWall } from '@/sections/PosterWall'
+import { OriginMap } from '@/sections/OriginMap'
 import { Profile } from '@/sections/Profile'
 import { DailyLog } from '@/sections/DailyLog'
 import { CoffeeRecommendations } from '@/sections/CoffeeRecommendations'
@@ -21,11 +21,11 @@ import { AnimatedTitle } from '@/components/AnimatedTitle'
 type Section = 'library' | 'daily' | 'recommendations' | 'profile'
 type Tab = 'home' | Section
 
-const TABS: { key: Section; label: string; english: string; note: string }[] = [
-  { key: 'library', label: '豆库', english: 'BEAN ARCHIVE', note: '收好每一袋喜欢' },
-  { key: 'daily', label: '每日记录', english: 'DAILY JOURNAL', note: '记下一杯的日常' },
-  { key: 'recommendations', label: '风味捕手', english: 'FLAVOR HUNTER', note: '商品豆与烘焙商 · 邀请制' },
-  { key: 'profile', label: '我的', english: 'MY CORNER', note: '偏好与随身工具' },
+const TABS: { key: Section; label: string; english: string }[] = [
+  { key: 'library', label: '豆库', english: 'BEAN ARCHIVE' },
+  { key: 'daily', label: '每日记录', english: 'DAILY JOURNAL' },
+  { key: 'recommendations', label: '风味捕手', english: 'FLAVOR HUNTER' },
+  { key: 'profile', label: '我的', english: 'MY CORNER' },
 ]
 
 const VIEW_ORDER: Record<Tab, number> = { home: 0, library: 1, daily: 2, recommendations: 3, profile: 4 }
@@ -36,16 +36,14 @@ function HomeDirectory({ onOpen }: { onOpen: (section: Section) => void }) {
       <header className="bl-home-intro">
         <p>{APP_BRAND_EN}</p>
         <h1 className="bl-journal-title" aria-label={APP_NAME}><AnimatedTitle text={APP_NAME} /></h1>
-        <span>{APP_POSITIONING}</span>
       </header>
       <nav className="bl-home-chapters" aria-label="选择板块">
-        {TABS.map(({ key, label, english, note }, index) => (
-          <button key={key} type="button" className="bl-home-chapter" aria-label={key === 'recommendations' ? '风味捕手，商品豆与烘焙商推荐，凭邀请码开启' : `${label}，${note}`} onClick={() => onOpen(key)}>
+        {TABS.map(({ key, label, english }, index) => (
+          <button key={key} type="button" className="bl-home-chapter" style={{ animationDelay: `${70 + index * 75}ms` }} aria-label={key === 'recommendations' ? '风味捕手，商品豆与烘焙商推荐，凭邀请码开启' : label} onClick={() => onOpen(key)}>
             <span className="bl-home-chapter-index" aria-hidden>0{index + 1}</span>
             <ArrowUpRight size={16} className="bl-home-chapter-arrow" aria-hidden />
-            <span className={`bl-home-chapter-title ${key === 'library' ? 'bl-library-title' : 'bl-journal-title'}`}><AnimatedTitle text={label} delay={100 + index * 45} /></span>
+            <span className={`bl-home-chapter-title ${key === 'library' ? 'bl-library-title' : 'bl-journal-title'}`}><AnimatedTitle text={label} delay={120 + index * 75} /></span>
             <span className="bl-home-chapter-english">{english}</span>
-            <span className="bl-home-chapter-note">{note}</span>
           </button>
         ))}
       </nav>
@@ -291,8 +289,8 @@ export default function App() {
           )}
         </div>
         {wallOpen && (
-          <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter" role="dialog" aria-modal="true" aria-label="豆库展示墙" onKeyDown={(event) => { if (event.key === 'Escape') closeWall() }}>
-            <PosterWall beans={beans} onBack={closeWall} />
+          <div className="absolute inset-0 z-30 bg-[var(--c-app)] overflow-y-auto sheet-enter" role="dialog" aria-modal="true" aria-label="咖啡豆产地地图" onKeyDown={(event) => { if (event.key === 'Escape') closeWall() }}>
+            <OriginMap beans={beans} onBack={closeWall} onOpenBean={id => { setWallOpen(false); openDetail(id) }} />
           </div>
         )}
         {referenceBean && (

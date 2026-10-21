@@ -169,7 +169,7 @@ export function BeanDetail({
   }
 
   return (
-    <div className="pb-16" onTouchStart={onTouchStartBack} onTouchEnd={onTouchEndBack}>
+    <div className="bl-bean-detail pb-16" onTouchStart={onTouchStartBack} onTouchEnd={onTouchEndBack}>
       {/* 顶栏 */}
       <div className="sticky top-0 z-20 bg-[var(--c-app)]/90 backdrop-blur px-5 pt-5 pb-3 flex items-center justify-between">
         <button

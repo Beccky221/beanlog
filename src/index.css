@@ -2,6 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 产地手记：稀疏散点世界地图与产国收藏清单。 */
+.bl-origin-page { padding: calc(20px + var(--safe-t)) 20px calc(36px + var(--safe-b)); }
+.bl-origin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bl-origin-header > button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--c-line); border-radius: 50%; background: var(--c-surface); color: var(--c-ink); }
+.bl-origin-header-spacer { width: 40px; flex-shrink: 0; }
+.bl-origin-intro { margin: 14px 4px 10px; }
+.bl-origin-stats { display: flex; gap: 24px; font-size: 12px; color: var(--c-ink-soft); }
+.bl-origin-stats strong { font-family: var(--font-english); font-weight: 400; font-size: 27px; color: var(--c-ink); margin-right: 4px; }
+.bl-origin-map-card { padding: 8px 0 6px; background: transparent; }
+.bl-origin-map-label { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; justify-content: space-between; margin: 0 5px 6px; font-size: 12px; color: var(--c-ink-soft); }
+.bl-origin-map-label > span:last-child { font-family: var(--font-english); font-size: 9px; letter-spacing: .1em; opacity: .7; }
+.bl-origin-world { width: 100%; height: auto; display: block; overflow: visible; }
+.bl-origin-guides { fill: none; stroke: var(--c-line); stroke-width: .9; stroke-dasharray: 4 8; opacity: .7; }
+.bl-origin-marker { cursor: pointer; }
+.bl-origin-marker:focus-visible { outline: none; }
+.bl-origin-marker:focus-visible .bl-origin-marker-ring { opacity: 1; stroke-width: 3; }
+.bl-origin-legend { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 14px; font-size: 10px; color: var(--c-ink-soft); }
+.bl-origin-legend i { width: 6px; height: 6px; border-radius: 47% 53% 45% 55%; background: var(--c-primary); opacity: .3; }
+.bl-origin-legend i:nth-of-type(2) { opacity: .5; }
+.bl-origin-legend i:nth-of-type(3) { opacity: .7; }
+.bl-origin-legend i:nth-of-type(4) { opacity: .95; }
+.bl-origin-legend em { font-style: normal; margin-left: 8px; opacity: .7; }
+.bl-origin-callout { color: var(--c-ink); cursor: pointer; }
+.bl-origin-leader { fill: none; stroke: currentColor; stroke-width: 1.6; opacity: .65; pointer-events: none; }
+.bl-origin-callout-name { fill: currentColor; font-family: var(--font-body); font-size: 26px; }
+.bl-origin-callout-count { fill: currentColor; font-family: var(--font-body); font-size: 21px; opacity: .7; }
+.bl-origin-callout-hit { fill: transparent; stroke: transparent; stroke-width: 1.5; }
+.bl-origin-callout[aria-pressed='true'] { color: var(--c-primary); }
+.bl-origin-callout[aria-pressed='true'] .bl-origin-leader { opacity: .85; stroke-width: 1.8; }
+.bl-origin-callout:focus-visible { outline: none; }
+.bl-origin-callout:focus-visible .bl-origin-callout-hit { stroke: var(--c-primary); }
+.bl-origin-selection { margin-top: 24px; }
+.bl-origin-selection > header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--c-line); }
+.bl-origin-selection h2 { font-size: 21px; }
+.bl-origin-selection > header > span { font-size: 11px; color: var(--c-ink-faint); }
+.bl-origin-bean, .bl-origin-unresolved button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 2px; text-align: left; border-bottom: 1px solid var(--c-line); }
+.bl-origin-bean > span, .bl-origin-unresolved button > span { min-width: 0; overflow-wrap: anywhere; }
+.bl-origin-bean strong { display: block; font-size: 14px; font-weight: 400; }
+.bl-origin-bean small, .bl-origin-unresolved small { display: block; margin-top: 5px; font-size: 11px; line-height: 1.6; color: var(--c-ink-faint); }
+.bl-origin-bean > svg, .bl-origin-unresolved button > svg { flex-shrink: 0; color: var(--c-primary); }
+.bl-origin-empty { margin: 26px 0; padding: 20px; text-align: center; border: 1px dashed var(--c-line); border-radius: 16px; }
+.bl-origin-empty > svg { margin: 0 auto 12px; color: var(--c-primary); }
+.bl-origin-empty p { font-size: 15px; }
+.bl-origin-empty span { display: block; margin-top: 10px; font-size: 12px; line-height: 1.7; color: var(--c-ink-faint); }
+.bl-origin-unresolved { margin-top: 24px; border: 1px solid var(--c-line); border-radius: 14px; padding: 12px 14px; color: var(--c-ink-soft); }
+.bl-origin-unresolved summary { cursor: pointer; font-size: 12px; padding: 3px 0; }
+.bl-origin-unresolved > p { font-size: 11px; margin-top: 12px; line-height: 1.7; }
+.bl-origin-unresolved button { font-size: 12px; }
+.bl-origin-unresolved button:last-child { border-bottom: 0; }
+
 /* 题字逐字轻落：仅动画绘制，不改变横排或竖排标题的占位。 */
 .bl-title-letter {
   display: inline-block;
@@ -18,7 +68,16 @@
 
 
 
-/* 英文使用用户提供的 Sounso Quality；中文与参数分别走下方字体角色。 */
+/* 大标题保留现有字体；英文与数字正文采用 Source Serif 4 Regular。 */
+@font-face {
+  font-family: 'Coffee Lab Source Serif';
+  src: url('./assets/fonts/SourceSerif4-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2212;
+}
+
 @font-face {
   font-family: 'Sounso Quality';
   src: url('./assets/fonts/SounsoQuality-Regular.woff2') format('woff2');
@@ -43,14 +102,25 @@
   font-style: normal;
   font-display: swap;
 }
+/* 仅匹配中文字符，与 Source Serif 的英文、数字字形分开选用。 */
+@font-face {
+  font-family: 'Coffee Lab Libian';
+  src: url('./assets/fonts/JingDianLibianJian-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+2E80-2FFF, U+3000-303F, U+3100-312F, U+31A0-31BF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF01-FF60, U+20000-2FA1F;
+}
 :root {
-  --font-english: 'Sounso Quality';
-  --font-body: var(--font-english), 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-title: var(--font-english), 'YouSheBiaoTiHei', 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 'Coffee Lab Libian', 'Coffee Lab Source Serif', var(--font-sans);
+  --font-english: 'Coffee Lab Source Serif', var(--font-sans);
+  --font-title: 'Sounso Quality', 'YouSheBiaoTiHei', 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   /* 保留现有组件使用的变量接口。 */
   --font-handwritten: var(--font-body);
 }
-h1, h2, h3 { font-family: var(--font-title); font-synthesis: none; }
+h1, h2, .bl-display-title { font-family: var(--font-title); font-synthesis: none; }
+h3 { font-family: var(--font-body); }
 
 
 /* ==========================================================================
@@ -288,6 +358,8 @@ body {
   background-color: var(--c-bg);
   color: var(--c-ink);
   font-family: var(--font-handwritten);
+  font-weight: 400;
+  font-variant-numeric: lining-nums tabular-nums;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -668,7 +740,7 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 }
 .bl-bean-card-copy { width: 100%; padding: 0 1px 2px; }
 .bl-bean-card-copy > div:first-child { display: block; }
-.bl-bean-card h3 { width: 100%; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; word-break: normal; }
+.bl-bean-card h3 { width: 100%; font-size: 14px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; word-break: normal; }
 .bl-bean-card h3 + span { display: block; max-width: 100%; padding-top: 2px; text-align: left; font-size: 10.5px; opacity: .82; }
 .bl-bean-card p { font-size: 11.5px; line-height: 1.5; overflow-wrap: anywhere; }
 .bl-bean-card p.line-clamp-1 { -webkit-line-clamp: 2; }
@@ -797,8 +869,7 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   padding: calc(42px + var(--safe-t)) 25px calc(26px + var(--safe-b));
 }
 .bl-home-intro > p { font-size: 11px; letter-spacing: .08em; color: var(--c-ink-faint); }
-.bl-home-intro > h1 { margin-top: 10px; font-size: 36px; }
-.bl-home-intro > span { display: block; margin-top: 10px; font-size: 12px; color: var(--c-ink-faint); }
+.bl-home-intro > h1 { margin-top: 10px; font-size: 44px; }
 .bl-home-chapters {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -818,6 +889,12 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   text-align: left;
   box-shadow: 0 5px 16px rgb(var(--c-shadow) / .07);
   transition: transform .2s ease, background-color .2s ease;
+  animation: bl-home-chapter-drop .55s cubic-bezier(.22,.61,.36,1) backwards;
+}
+/* 独立位移与原有错列、按压 transform 叠加，落定后不占用交互状态。 */
+@keyframes bl-home-chapter-drop {
+  from { opacity: 0; translate: 0 -18px; }
+  to { opacity: 1; translate: 0 0; }
 }
 #root .bl-home-chapter:nth-child(even) { transform: translateY(16px); background: color-mix(in srgb, var(--c-surface) 66%, var(--c-soft)); }
 #root .bl-home-chapter:active { transform: translateY(2px); }
@@ -830,20 +907,20 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   top: 24px;
   writing-mode: vertical-rl;
   text-orientation: upright;
-  font-size: 32px;
+  font-size: 28px;
   letter-spacing: .12em;
   line-height: 1;
 }
-.bl-home-chapter-title.bl-library-title { font-size: 39px; }
+.bl-home-chapter-title.bl-library-title { font-size: 28px; }
+
 .bl-home-chapter-english { position: absolute; left: 18px; top: 46px; writing-mode: vertical-rl; font-family: var(--font-english), var(--font-handwritten); font-size: 10px; font-weight: 400; letter-spacing: .06em; color: var(--c-ink-faint); }
-.bl-home-chapter-note { position: absolute; left: 17px; bottom: 18px; font-size: 10px; color: var(--c-ink-soft); }
 .bl-home-footer { margin-top: 26px; text-align: center; color: var(--c-ink-ghost); font-size: 10px; letter-spacing: .2em; }
 @media (max-width: 360px) {
   .bl-home-directory { padding-left: 20px; padding-right: 20px; }
   .bl-home-chapters { gap: 12px; }
-  .bl-home-chapter-title { right: 15px; font-size: 29px; }
-  .bl-home-chapter-note { font-size: 9px; }
+  .bl-home-intro > h1 { font-size: 38px; }
+  .bl-home-chapter-title, .bl-home-chapter-title.bl-library-title { right: 15px; font-size: 26px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #root .bl-home-chapter { transition: none; }
+  #root .bl-home-chapter { transition: none; animation: none; }
 }
