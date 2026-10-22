@@ -9,6 +9,7 @@ import type { Grinder } from '@/types/grinder'
 import { Stars } from '@/components/Stars'
 import { JournalHeading } from '@/components/JournalHeading'
 import { BeanThumb } from '@/components/BeanThumb'
+import { grindSummary } from '@/lib/brewRecipes'
 
 interface BeanLibraryProps {
   beans: Bean[]
@@ -170,15 +171,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
     })
   }, [beans, query, category, activeFilter])
 
-  const grindText = (bean: Bean): string | null => {
-    if (!bean.grindSetting) return null
-    const grinder = grinders.find((g) => g.id === bean.grindGrinderId)
-    const unit = grinder?.unit ?? '格'
-    // 关联档案仍存在时显示当前名称；删除后才使用历史名称快照。
-    const grinderName = grinder?.name ?? bean.grindGrinderName
-    const name = grinderName ? ` · ${grinderName}` : ''
-    return `研磨 ${bean.grindSetting} ${unit}${name}`
-  }
+  const grindText = (bean: Bean) => grindSummary(bean, grinders)
 
   return (
     <div className="list-bottom-space bl-library-page">

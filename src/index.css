@@ -989,3 +989,19 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 @media (prefers-reduced-motion: reduce) {
   #root .bl-home-chapter { transition: none; animation: none; }
 }
+
+/* 豆袋档案复用每日记录的索引纸页，四枚页签适配窄屏。 */
+.bl-bean-identity-folder .bl-record-index { gap: 5px; padding-inline: 8px; }
+#root .bl-bean-identity-folder .bl-record-tab { max-width: none; gap: 5px; padding-inline: 6px; font-size: 12px; }
+.bl-bean-identity-folder .bl-record-sheet { padding-bottom: 4px; }
+.bl-bean-identity-folder [role='tabpanel'] { min-height: 280px; }
+.bl-bean-identity-folder [role='tabpanel'][hidden] { display: none; }
+.bl-bean-identity-folder [role='tabpanel'] > label:last-child { border-bottom: 0; }
+
+.bl-bean-dossier-section { padding-block: 14px 4px; }
+.bl-bean-dossier-section + .bl-bean-dossier-section { margin-top: 10px; border-top: 1px solid var(--c-line); }
+@media (max-width: 380px) {
+  #root .bl-bean-identity-folder .bl-record-tab { padding-inline: 4px; font-size: 11.5px; }
+}
+
+.bl-bean-identity-folder:has([id$='-drinking-panel']:not([hidden])) [id$='-drinking-panel'] { min-height: 0; }

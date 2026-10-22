@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { ChevronLeft, ImagePlus, Crop, Minus, Plus, Trash2 } from 'lucide-react'
+import { useId, useRef, useState } from 'react'
+import { ChevronLeft, ImagePlus, Crop, Trash2 } from 'lucide-react'
 import type { Bean, DrinkStatus, RoastLevel } from '@/types/bean'
 import { ROAST_LEVELS, DRINK_STATUS } from '@/types/bean'
 import type { Grinder } from '@/types/grinder'
@@ -7,6 +7,7 @@ import { Stars } from '@/components/Stars'
 import { Toggle } from '@/components/Toggle'
 import { OptionRow } from '@/components/OptionRow'
 import { BrewCard } from '@/components/BrewCard'
+import { beanRecipes } from '@/lib/brewRecipes'
 import { BeanThumb } from '@/components/BeanThumb'
 import { PhotoRecognition } from '@/components/PhotoRecognition'
 import { processPhotoFile } from '@/lib/image'
@@ -28,12 +29,6 @@ interface BeanDetailProps {
   onDropPhotos: (ids: (string | undefined)[]) => void
 }
 
-/** 把数值按步进格式化：18 而不是 18.0，17.5 保留一位 */
-function formatSetting(v: number): string {
-  return String(Math.round(v * 100) / 100)
-}
-
-const NO_GRIND = '不记录'
 const IDENTITY_FIELDS = [
   { key: 'name', label: '豆子名称', placeholder: '填写这袋豆子的名称' },
   { key: 'brand', label: '品牌', placeholder: '如：皮爷咖啡、分子咖啡' },
@@ -53,7 +48,15 @@ export function BeanDetail({
   onSavePhoto,
   onDropPhotos,
 }: BeanDetailProps) {
-  const [draft, setDraft] = useState<Bean>(bean)
+  const [draft, setDraft] = useState<Bean>(() => ({ ...bean, brews: beanRecipes(bean) }))
+  const [identityTab, setIdentityTab] = useState('identity')
+  const identityFolderId = useId()
+  const identityTabs = [
+    { id: 'identity', label: '豆子身份' },
+    { id: 'brewing', label: '研磨冲煮' },
+    { id: 'drinking', label: '饮用回购' },
+    { id: 'notes', label: '随想记录' },
+  ] as const
   const [photoBusy, setPhotoBusy] = useState(false)
   const [cropSource, setCropSource] = useState<Blob | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -142,55 +145,12 @@ export function BeanDetail({
     const kept = new Set([draft.photoId, draft.originalPhotoId].filter(Boolean))
     const unused = [...tempPhotos.current, bean.photoId, bean.originalPhotoId]
       .filter((id): id is string => !!id && !kept.has(id))
-    onSave(draft)
+    onSave({ ...draft,
+      inRepurchase: !draft.inPlanToBuy && draft.inRepurchase,
+      trackOpenDate: !draft.inPlanToBuy && !!draft.openDate,
+    })
     if (unused.length) onDropPhotos([...new Set(unused)])
     tempPhotos.current = []
-  }
-
-  // ---- 研磨信息 ----
-  const grinder = grinders.find((g) => g.id === draft.grindGrinderId)
-  const grinderMissing = !grinder && !!draft.grindGrinderName
-  const grinderDisplayName = grinder
-    ? grinder.name
-    : grinderMissing
-      ? `${draft.grindGrinderName}（已删除）`
-      : NO_GRIND
-
-  const grinderOptions = [
-    NO_GRIND,
-    ...grinders.map((g) => g.name),
-    ...(grinderMissing ? [grinderDisplayName] : []),
-  ]
-
-  const selectGrinder = (name: string) => {
-    if (name === NO_GRIND) {
-      setDraft((d) => ({
-        ...d,
-        grindGrinderId: undefined,
-        grindGrinderName: undefined,
-        grindSetting: undefined,
-      }))
-      return
-    }
-    if (name === grinderDisplayName && grinderMissing) return // 已删除的保留原样
-    const g = grinders.find((x) => x.name === name)
-    if (!g) return
-    setDraft((d) => ({
-      ...d,
-      grindGrinderId: g.id,
-      grindGrinderName: g.name,
-      grindSetting: d.grindSetting ?? formatSetting(g.min),
-    }))
-  }
-
-  const grindValue = grinder
-    ? Math.min(grinder.max, Math.max(grinder.min, Number(draft.grindSetting ?? grinder.min)))
-    : 0
-
-  const setGrindValue = (v: number) => {
-    if (!grinder) return
-    const clamped = Math.min(grinder.max, Math.max(grinder.min, v))
-    set('grindSetting', formatSetting(clamped))
   }
 
   return (
@@ -296,8 +256,23 @@ export function BeanDetail({
 
       {/* 豆子身份卡 */}
       <div className="px-5 mt-6">
-        <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">豆子身份卡</p>
-        <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
+        <div className="bl-record-folder bl-bean-identity-folder">
+          <div className="bl-record-index" role="tablist" aria-label="豆子档案分类">
+            {identityTabs.map(({ id, label }, index) => <button key={id} id={`${identityFolderId}-${id}`} type="button" role="tab"
+              aria-selected={identityTab === id} aria-controls={`${identityFolderId}-${id}-panel`} tabIndex={identityTab === id ? 0 : -1}
+              className="bl-record-tab" onClick={() => setIdentityTab(id)}
+              onKeyDown={event => {
+                const next = event.key === 'ArrowRight' ? (index + 1) % identityTabs.length
+                  : event.key === 'ArrowLeft' ? (index + identityTabs.length - 1) % identityTabs.length
+                  : event.key === 'Home' ? 0 : event.key === 'End' ? identityTabs.length - 1 : -1
+                if (next < 0) return
+                event.preventDefault()
+                setIdentityTab(identityTabs[next].id)
+                document.getElementById(`${identityFolderId}-${identityTabs[next].id}`)?.focus()
+              }}>{label}</button>)}
+          </div>
+          <div className="bl-record-sheet">
+          <div id={`${identityFolderId}-identity-panel`} role="tabpanel" aria-labelledby={`${identityFolderId}-identity`} hidden={identityTab !== 'identity'} className="bl-record-page-content" data-source="home">
           {IDENTITY_FIELDS.map(({ key, label, placeholder }) => (
             <label
               key={key}
@@ -313,8 +288,8 @@ export function BeanDetail({
               />
             </label>
           ))}
-          <div className="py-3.5 border-b border-[var(--c-soft)]">
-            <p className="text-[15px] text-[var(--c-ink)]">风味</p>
+          <div className="py-3.5">
+            <p className="text-[15px] text-[var(--c-ink)]">风味档案</p>
             <div className="mt-3 space-y-3">
               {([
                 { key: 'flavor', label: '黑咖风味', placeholder: '如：柑橘、花香、巧克力' },
@@ -338,129 +313,59 @@ export function BeanDetail({
             options={DRINK_STATUS}
             onChange={(v) => set('status', v as DrinkStatus)}
           />
-        </div>
-      </div>
-
-      {/* 研磨信息 */}
-      <div className="px-5 mt-5">
-        <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">研磨信息</p>
-        <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
-          <div className="py-3.5 border-b border-[var(--c-soft)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[15px] text-[var(--c-ink)]">磨豆器</span>
-              <span className="text-[13px] text-[var(--c-ink-soft)]">{grinderDisplayName}</span>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2.5">
-              {grinderOptions.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => selectGrinder(name)}
-                  className={`px-3.5 py-1.5 rounded-full text-[13px] transition-colors ${
-                    name === grinderDisplayName
-                      ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]'
-                      : 'bg-[var(--c-soft)] text-[var(--c-soft-ink)] active:bg-[var(--c-soft-hover)]'
-                  }`}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
           </div>
-          {grinder && (
-            <div className="py-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[15px] text-[var(--c-ink)]">研磨刻度</span>
-                <span className="text-[15px] font-semibold text-[var(--c-accent)] tabular-nums">
-                  {formatSetting(grindValue)} {grinder.unit}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 mt-2.5">
-                <button
-                  type="button"
-                  aria-label="调细一档"
-                  onClick={() => setGrindValue(grindValue - grinder.step)}
-                  className="w-8 h-8 rounded-full bg-[var(--c-soft)] text-[var(--c-soft-ink)] flex items-center justify-center active:scale-90 transition-transform shrink-0"
-                >
-                  <Minus size={14} />
-                </button>
-                <input
-                  type="range"
-                  min={grinder.min}
-                  max={grinder.max}
-                  step={grinder.step}
-                  value={grindValue}
-                  onChange={(e) => setGrindValue(Number(e.target.value))}
-                  className="flex-1 accent-[var(--c-toggle-on)] h-1.5"
-                  aria-label="研磨刻度"
-                />
-                <button
-                  type="button"
-                  aria-label="调粗一档"
-                  onClick={() => setGrindValue(grindValue + grinder.step)}
-                  className="w-8 h-8 rounded-full bg-[var(--c-soft)] text-[var(--c-soft-ink)] flex items-center justify-center active:scale-90 transition-transform shrink-0"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-              <div className="flex justify-between text-[11px] text-[var(--c-ink-ghost)] mt-1.5 px-11 tabular-nums">
-                <span>{formatSetting(grinder.min)}（细）</span>
-                <span>{formatSetting(grinder.max)}（粗）</span>
-              </div>
-              {grinder.note && (
-                <p className="text-[12px] text-[var(--c-ink-ghost)] mt-2">备注：{grinder.note}</p>
-              )}
-            </div>
-          )}
-          {grinders.length === 0 && (
-            <p className="py-3 text-[12px] text-[var(--c-ink-ghost)]">
-              还没有磨豆器档案，去「我的 → 磨豆器管理」添加一台。
-            </p>
-          )}
-        </div>
-      </div>
-
+          <div id={`${identityFolderId}-brewing-panel`} role="tabpanel" aria-labelledby={`${identityFolderId}-brewing`} hidden={identityTab !== 'brewing'} className="bl-record-page-content">
       {/* 冲煮参数 */}
-      <div className="px-5 mt-5">
+      <div className="bl-bean-dossier-section">
         <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">冲煮参数</p>
-        <BrewCard brews={draft.brews} onChange={(b) => set('brews', b)} />
+        <BrewCard grinders={grinders} brews={draft.brews} onChange={(b) => set('brews', b)} />
       </div>
 
-      {/* 饮用时间线 */}
-      <div className="px-5 mt-5">
-        <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">饮用时间线（可选）</p>
-        <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
-          <div className="flex items-center justify-between py-3.5">
-            <span className="text-[15px] text-[var(--c-ink)]">记录开袋日期</span>
-            <Toggle
-              checked={draft.trackOpenDate}
-              onChange={(v) =>
-                setDraft((d) => ({
-                  ...d,
-                  trackOpenDate: v,
-                  openDate: v ? d.openDate ?? new Date().toISOString().slice(0, 10) : d.openDate,
-                }))
-              }
-            />
           </div>
-          {draft.trackOpenDate && (
-            <div className="flex items-center justify-between py-3 border-t border-[var(--c-soft)]">
-              <span className="text-[14px] text-[var(--c-ink-soft)]">开袋日期</span>
-              <input
-                type="date"
-                value={draft.openDate ?? ''}
-                onChange={(e) => set('openDate', e.target.value)}
-                className="bg-transparent outline-none text-[14px] text-[var(--c-ink)]"
-              />
+          <div id={`${identityFolderId}-drinking-panel`} role="tabpanel" aria-labelledby={`${identityFolderId}-drinking`} hidden={identityTab !== 'drinking'} className="bl-record-page-content">
+      <div className="bl-bean-dossier-section">
+        <fieldset>
+          <legend className="text-[13px] text-[var(--c-ink)]">购买状态</legend>
+          <div className="flex gap-3 mt-3" role="group" aria-label="购买状态">
+            {[{ planned: true, label: '准备买' }, { planned: false, label: '已购买' }].map(option => <button key={option.label} type="button"
+              aria-pressed={draft.inPlanToBuy === option.planned} onClick={() => set('inPlanToBuy', option.planned)}
+              className={`flex-1 min-h-11 rounded-full text-[13px] transition-colors ${draft.inPlanToBuy === option.planned ? 'bg-[var(--c-primary)] text-[var(--c-primary-ink)]' : 'bg-[var(--c-soft)] text-[var(--c-soft-ink)]'}`}>
+              {option.label}
+            </button>)}
+          </div>
+        </fieldset>
+        {!draft.inPlanToBuy && <div className="mt-4 bl-record-page-content">
+          <label className="flex flex-wrap items-center justify-between gap-3 py-3.5 border-b border-[var(--c-soft)]">
+            <span className="text-[14px] text-[var(--c-ink)]">开袋日期</span>
+            <input type="date" value={draft.openDate ?? ''} aria-label="开袋日期"
+              onChange={event => setDraft(current => ({ ...current, openDate: event.target.value || undefined, trackOpenDate: !!event.target.value }))}
+              className="min-w-0 max-w-full min-h-10 bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)]" />
+          </label>
+          <div className="flex items-center justify-between py-3.5 border-b border-[var(--c-soft)]">
+            <div>
+              <p className="text-[15px] text-[var(--c-ink)]">值得回购</p>
+              <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">喜欢、以后还愿意喝</p>
             </div>
-          )}
-        </div>
+            <Toggle checked={draft.inRepurchase} onChange={value => set('inRepurchase', value)} />
+          </div>
+          <div className="flex items-center justify-between py-3.5">
+            <div>
+              <p className="text-[15px] text-[var(--c-ink)]">回购次数</p>
+              <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">这袋豆子回购过几次</p>
+            </div>
+            <input type="number" min={0} value={draft.repurchaseCount || ''} placeholder="0" aria-label="回购次数"
+              onChange={event => set('repurchaseCount', Math.max(0, Number(event.target.value) || 0))}
+              className="w-20 bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)] text-center" />
+          </div>
+        </div>}
       </div>
 
+          </div>
+          <div id={`${identityFolderId}-notes-panel`} role="tabpanel" aria-labelledby={`${identityFolderId}-notes`} hidden={identityTab !== 'notes'} className="bl-record-page-content">
       {/* 随想记录 */}
-      <div className="px-5 mt-5">
+      <div className="bl-bean-dossier-section">
         <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">随想记录</p>
-        <div className="bg-[var(--c-surface)] rounded-2xl px-4 py-3.5 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)] space-y-3.5">
+        <div className="py-3.5 space-y-3.5">
           <div className="flex items-center justify-between">
             <span className="text-[15px] text-[var(--c-ink)]">评分</span>
             <Stars value={draft.rating} onChange={(v) => set('rating', v)} size={22} />
@@ -475,40 +380,7 @@ export function BeanDetail({
         </div>
       </div>
 
-      {/* 清单 */}
-      <div className="px-5 mt-5">
-        <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">回购清单</p>
-        <div className="bg-[var(--c-surface)] rounded-2xl px-4 border border-[var(--c-line)] shadow-[0_3px_14px_rgb(var(--c-shadow) / 0.05)]">
-          <div className="flex items-center justify-between py-3.5 border-b border-[var(--c-soft)]">
-            <div>
-              <p className="text-[15px] text-[var(--c-ink)]">值得回购</p>
-              <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">喜欢、以后还愿意喝</p>
-            </div>
-            <Toggle checked={draft.inRepurchase} onChange={(v) => set('inRepurchase', v)} />
           </div>
-          <div className="flex items-center justify-between py-3.5 border-b border-[var(--c-soft)]">
-            <div>
-              <p className="text-[15px] text-[var(--c-ink)]">准备买</p>
-              <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">近期打算买</p>
-            </div>
-            <Toggle checked={draft.inPlanToBuy} onChange={(v) => set('inPlanToBuy', v)} />
-          </div>
-          <div className="flex items-center justify-between py-3.5">
-            <div>
-              <p className="text-[15px] text-[var(--c-ink)]">回购次数</p>
-              <p className="text-[12px] text-[var(--c-ink-ghost)] mt-0.5">这袋豆子回购过几次</p>
-            </div>
-            <input
-              type="number"
-              min={0}
-              value={draft.repurchaseCount || ''}
-              onChange={(e) =>
-                set('repurchaseCount', Math.max(0, Number(e.target.value) || 0))
-              }
-              placeholder="0"
-              aria-label="回购次数"
-              className="w-20 bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)] text-center"
-            />
           </div>
         </div>
       </div>

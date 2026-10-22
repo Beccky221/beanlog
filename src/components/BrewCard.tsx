@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { GrindEditor } from '@/components/GrindEditor'
+import type { Grinder } from '@/types/grinder'
 import { BREW_METHODS, type BrewRecipe } from '@/types/bean'
 
 interface BrewCardProps {
   brews: BrewRecipe[] | undefined
+  grinders: Grinder[]
   onChange: (brews: BrewRecipe[]) => void
 }
 
@@ -13,7 +16,7 @@ function parseNum(v: string | undefined): number | null {
 }
 
 /** 冲煮记录卡片：顶部切换冲煮方式，下方记录该方式「最好喝的一份参数」 */
-export function BrewCard({ brews, onChange }: BrewCardProps) {
+export function BrewCard({ brews, grinders, onChange }: BrewCardProps) {
   const [methodId, setMethodId] = useState(BREW_METHODS[0].id)
   const method = BREW_METHODS.find((m) => m.id === methodId) ?? BREW_METHODS[0]
   const recipe = brews?.find((b) => b.method === method.id)
@@ -31,7 +34,7 @@ export function BrewCard({ brews, onChange }: BrewCardProps) {
 
   const hasContent =
     !!recipe &&
-    (Object.values(recipe.values).some((v) => v.trim() !== '') || !!recipe.note?.trim())
+    (Object.values(recipe.values).some((v) => v.trim() !== '') || !!recipe.note?.trim() || !!recipe.grind?.grinderName || !!recipe.grind?.setting)
 
   // 粉水比 / 粉液比速览
   const dose = parseNum(recipe?.values.dose)
@@ -45,7 +48,7 @@ export function BrewCard({ brews, onChange }: BrewCardProps) {
       <div className="flex gap-2 py-3.5 border-b border-[var(--c-soft)] overflow-x-auto">
         {BREW_METHODS.map((m) => {
           const r = brews?.find((b) => b.method === m.id)
-          const filled = !!r && Object.values(r.values).some((v) => v.trim() !== '')
+          const filled = !!r && (Object.values(r.values).some((v) => v.trim() !== '') || !!r.note?.trim() || !!r.grind?.grinderName || !!r.grind?.setting)
           const active = m.id === method.id
           return (
             <button
@@ -69,6 +72,8 @@ export function BrewCard({ brews, onChange }: BrewCardProps) {
           )
         })}
       </div>
+
+      <GrindEditor value={recipe?.grind} grinders={grinders} onChange={grind => update({ grind })} />
 
       {/* 参数填写 */}
       <div className="py-3.5">

@@ -18,6 +18,13 @@ export interface BrewMethod {
 }
 
 /** 一种冲煮方式的最佳参数记录（每袋豆、每种方式只留一份「最好喝」的） */
+export interface GrindSettings {
+  grinderId?: string
+  grinderName?: string
+  setting?: string
+  unit?: string
+}
+
 export interface BrewRecipe {
   /** 冲煮方式 id，对应 BREW_METHODS */
   method: string
@@ -25,6 +32,8 @@ export interface BrewRecipe {
   values: Record<string, string>
   /** 一句话备注，如「这个参数最平衡」 */
   note?: string
+  /** 各冲煮方式独立保存；空对象表示明确选择不记录。 */
+  grind?: GrindSettings
 }
 
 export const BREW_METHODS: BrewMethod[] = [
