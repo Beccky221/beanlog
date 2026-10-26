@@ -1005,3 +1005,15 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
 }
 
 .bl-bean-identity-folder:has([id$='-drinking-panel']:not([hidden])) [id$='-drinking-panel'] { min-height: 0; }
+
+/* 豆袋封面：照片与可编辑豆名并排。 */
+.bl-bean-detail-cover { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 16px; align-items: center; }
+#root .bl-bean-identity-folder .bl-identity-field { min-height: 32px; padding-block: 3px; }
+#root .bl-bean-identity-folder .bl-identity-field input { line-height: 24px; padding-block: 0; box-shadow: none; background: transparent; }
+.bl-identity-recognition { margin-bottom: 3px; }
+.bl-bean-identity-folder [id$='-brewing-panel'] .bl-bean-dossier-section { padding-top: 8px; }
+#root .bl-bean-brew-card { padding-inline: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+@media (max-width: 360px) {
+  .bl-bean-detail-cover { gap: 12px; }
+  .bl-bean-detail-cover textarea { font-size: 18px; }
+}

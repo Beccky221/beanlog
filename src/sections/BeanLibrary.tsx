@@ -9,6 +9,7 @@ import type { Grinder } from '@/types/grinder'
 import { Stars } from '@/components/Stars'
 import { JournalHeading } from '@/components/JournalHeading'
 import { BeanThumb } from '@/components/BeanThumb'
+import { restInfo } from '@/lib/coffeeRest'
 import { grindSummary } from '@/lib/brewRecipes'
 
 interface BeanLibraryProps {
@@ -289,6 +290,7 @@ export function BeanLibrary({ beans, grinders, onOpen, onAdd, onDelete, onOpenWa
                 <p className="text-[12px] text-[var(--c-ink-faint)] mt-1">
                   {[bean.origin?.trim(), bean.processingMethod?.trim(), bean.roastLevel].filter(Boolean).join(' · ')}
                 </p>
+                {bean.status === '养豆中' && <p className="mt-2 text-[11.5px] text-[var(--c-primary)]">养豆中{restInfo(bean) ? ` · 建议 ${restInfo(bean)!.readyDate.replaceAll('-', '/')} 起试喝` : ''}</p>}
                 {grindText(bean) && (
                   <p className="text-[12px] text-[var(--c-ink-faint)] mt-0.5">{grindText(bean)}</p>
                 )}

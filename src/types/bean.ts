@@ -1,6 +1,6 @@
 export type RoastLevel = '浅烘' | '中浅烘' | '中烘' | '中深烘' | '深烘'
 
-export type DrinkStatus = '未开袋' | '正在喝' | '已喝完'
+export type DrinkStatus = '未开袋' | '养豆中' | '正在喝' | '已喝完'
 
 /** 冲煮方式的一个参数位，如「粉量 (g)」 */
 export interface BrewField {
@@ -17,7 +17,7 @@ export interface BrewMethod {
   fields: BrewField[]
 }
 
-/** 一种冲煮方式的最佳参数记录（每袋豆、每种方式只留一份「最好喝」的） */
+/** 一种冲煮方式的最佳参数记录（每袋豆、每种方式可保留多组参数） */
 export interface GrindSettings {
   grinderId?: string
   grinderName?: string
@@ -26,6 +26,8 @@ export interface GrindSettings {
 }
 
 export interface BrewRecipe {
+  id?: string
+  label?: string
   /** 冲煮方式 id，对应 BREW_METHODS */
   method: string
   /** 参数键值对，键见对应方式的 fields；统一存字符串，空串视为未填 */
@@ -119,6 +121,10 @@ export interface Bean {
   origin?: string
   roastLevel: RoastLevel
   status: DrinkStatus
+  /** 烘焙完成日期，YYYY-MM-DD；不与开袋日期混用。 */
+  roastDate?: string
+  /** 用户指定的养豆天数；未指定时跟随烘焙度建议。 */
+  restDays?: number
   /** 0-5 星 */
   rating: number
   /** 自己看得懂的感受 */
@@ -145,14 +151,14 @@ export interface Bean {
   grindGrinderName?: string
   /** 研磨：刻度读数，如 "18" */
   grindSetting?: string
-  /** 冲煮记录：每种冲煮方式一份最佳参数 */
+  /** 冲煮记录：每种冲煮方式可保存多组参数 */
   brews?: BrewRecipe[]
   createdAt: string
 }
 
 export const ROAST_LEVELS: RoastLevel[] = ['浅烘', '中浅烘', '中烘', '中深烘', '深烘']
 
-export const DRINK_STATUS: DrinkStatus[] = ['未开袋', '正在喝', '已喝完']
+export const DRINK_STATUS: DrinkStatus[] = ['未开袋', '养豆中', '正在喝', '已喝完']
 
 /** 一袋豆子引用到的所有照片 id（导出、清理孤儿照片时用） */
 export function beanPhotoIds(bean: Bean): string[] {

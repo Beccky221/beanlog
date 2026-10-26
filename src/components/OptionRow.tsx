@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 
 interface OptionRowProps {
+  compact?: boolean
   label: string
   value: string
   options: readonly string[]
@@ -9,14 +10,14 @@ interface OptionRowProps {
 }
 
 /** 截图里「烘焙程度 深烘 ◇」式的行：点开就地展开选项 */
-export function OptionRow({ label, value, options, onChange }: OptionRowProps) {
+export function OptionRow({ label, value, options, onChange, compact = false }: OptionRowProps) {
   const [open, setOpen] = useState(false)
   return (
     <div className="border-b border-[var(--c-soft)] last:border-b-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between py-3.5"
+        className={`w-full flex items-center justify-between ${compact ? 'py-1.5' : 'py-3.5'}`}
       >
         <span className="text-[15px] text-[var(--c-ink)]">{label}</span>
         <span className="flex items-center gap-1 text-[15px] text-[var(--c-ink-soft)]">

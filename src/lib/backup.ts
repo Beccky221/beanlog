@@ -1,3 +1,4 @@
+import { validRestDays, validRoastDate } from '@/lib/coffeeRest'
 import { APP_NAME } from '@/lib/brand'
 import { normalizeRecommendationState } from '@/lib/recommendations'
 import type { AppData } from '@/lib/store'
@@ -182,6 +183,8 @@ export async function restoreBackup(
       origin: typeof raw.origin === 'string' ? raw.origin : undefined,
       roastLevel: (raw.roastLevel as Bean['roastLevel']) ?? '中烘',
       status: (raw.status as Bean['status']) ?? '未开袋',
+      roastDate: validRoastDate(raw.roastDate),
+      restDays: validRestDays(raw.restDays),
       rating: typeof raw.rating === 'number' ? raw.rating : 0,
       note: asString(raw.note),
       photoId,

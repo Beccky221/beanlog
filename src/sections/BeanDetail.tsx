@@ -7,6 +7,8 @@ import { Stars } from '@/components/Stars'
 import { Toggle } from '@/components/Toggle'
 import { OptionRow } from '@/components/OptionRow'
 import { BrewCard } from '@/components/BrewCard'
+import { CoffeeRest } from '@/components/CoffeeRest'
+import { localToday, validRoastDate } from '@/lib/coffeeRest'
 import { beanRecipes } from '@/lib/brewRecipes'
 import { BeanThumb } from '@/components/BeanThumb'
 import { PhotoRecognition } from '@/components/PhotoRecognition'
@@ -142,10 +144,15 @@ export function BeanDetail({
 
   const handleSave = () => {
     if (photoBusy || cropSource) return
+    if (draft.roastDate && (!validRoastDate(draft.roastDate) || draft.roastDate > localToday())) {
+      window.alert('请填写有效且不晚于今天的烘焙日期。')
+      return
+    }
     const kept = new Set([draft.photoId, draft.originalPhotoId].filter(Boolean))
     const unused = [...tempPhotos.current, bean.photoId, bean.originalPhotoId]
       .filter((id): id is string => !!id && !kept.has(id))
     onSave({ ...draft,
+      grindGrinderId: undefined, grindGrinderName: undefined, grindSetting: undefined,
       inRepurchase: !draft.inPlanToBuy && draft.inRepurchase,
       trackOpenDate: !draft.inPlanToBuy && !!draft.openDate,
     })
@@ -182,25 +189,14 @@ export function BeanDetail({
         </button>
       </div>
 
-      {/* 豆名大标题 */}
-      <div className="px-5 mt-3">
-        <input
-          value={draft.name}
-          onChange={(e) => set('name', e.target.value)}
-          placeholder="品牌-豆名，如：分子咖啡-雪松可可"
-          aria-label="豆子名称"
-          className="w-full bg-transparent outline-none text-[26px] leading-snug font-bold text-[var(--c-ink)] placeholder:text-[var(--c-placeholder)]"
-        />
-      </div>
-
-      {/* 照片：点击图片区域即可上传/更换 */}
-      <div className="px-5 mt-2">
+      <div className="bl-bean-detail-cover px-5 mt-3">
+        <div className="min-w-0">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={photoBusy}
           aria-label="上传豆袋照片"
-          className="relative w-full rounded-2xl bg-[var(--c-photo-well)] border border-[var(--c-border)] h-[240px] flex items-center justify-center overflow-hidden active:scale-[0.99] transition-transform"
+          className="relative w-full rounded-2xl bg-[var(--c-photo-well)] border border-[var(--c-border)] aspect-square flex items-center justify-center overflow-hidden active:scale-[0.99] transition-transform"
         >
           {draft.photoId || draft.placeholder ? (
             <>
@@ -216,10 +212,18 @@ export function BeanDetail({
             </span>
           )}
         </button>
+        </div>
+        <div className="min-w-0 flex flex-col justify-center">
+          <label className="block">
+            <span className="text-[11px] text-[var(--c-ink-faint)]">豆子名称</span>
+            <textarea rows={3} value={draft.name} onChange={event => set('name', event.target.value)}
+              placeholder="填写豆子名称" aria-label="豆子名称"
+              className="mt-1 w-full bg-transparent outline-none text-[20px] leading-snug font-bold text-[var(--c-ink)] placeholder:text-[var(--c-placeholder)] resize-none" />
+          </label>
         {photoBusy && (
           <p className="text-[12px] text-[var(--c-ink-faint)] mt-2 text-center">正在处理照片…</p>
         )}
-        <div className="flex items-center justify-end gap-4 mt-2">
+        <div className="flex items-center flex-wrap gap-3 mt-2">
           {draft.photoId && <button type="button" disabled={photoBusy} onClick={() => void editPhoto()} className="flex items-center gap-1.5 min-h-10 text-[12px] text-[var(--c-primary)] disabled:opacity-40"><Crop size={14} />编辑照片</button>}
           {draft.photoId && (
             <button
@@ -244,14 +248,7 @@ export function BeanDetail({
             e.target.value = ''
           }}
         />
-      </div>
-
-      <div className="px-5">
-        <PhotoRecognition
-          bean={draft}
-          onUsePhoto={handlePhoto}
-          onApply={(patch) => setDraft((current) => ({ ...current, ...patch }))}
-        />
+        </div>
       </div>
 
       {/* 豆子身份卡 */}
@@ -273,12 +270,16 @@ export function BeanDetail({
           </div>
           <div className="bl-record-sheet">
           <div id={`${identityFolderId}-identity-panel`} role="tabpanel" aria-labelledby={`${identityFolderId}-identity`} hidden={identityTab !== 'identity'} className="bl-record-page-content" data-source="home">
+          <div className="bl-identity-recognition border-b border-[var(--c-soft)] pb-3">
+            <PhotoRecognition bean={draft} onUsePhoto={handlePhoto}
+              onApply={patch => setDraft(current => ({ ...current, ...patch }))} />
+          </div>
           {IDENTITY_FIELDS.map(({ key, label, placeholder }) => (
             <label
               key={key}
-              className="flex items-start gap-3 py-3.5 border-b border-[var(--c-soft)]"
+              className="bl-identity-field flex items-center gap-3 border-b border-[var(--c-soft)]"
             >
-              <span className="shrink-0 w-[66px] pt-0.5 text-[15px] text-[var(--c-ink)]">{label}</span>
+              <span className="shrink-0 w-[66px] text-[14px] text-[var(--c-ink)]">{label}</span>
               <input
                 type="text"
                 value={draft[key] ?? ''}
@@ -288,36 +289,36 @@ export function BeanDetail({
               />
             </label>
           ))}
-          <div className="py-3.5">
-            <p className="text-[15px] text-[var(--c-ink)]">风味档案</p>
-            <div className="mt-3 space-y-3">
+          <div className="py-2">
+            <p className="text-[12px] text-[var(--c-ink)]">风味档案</p>
+            <div className="mt-1">
               {([
                 { key: 'flavor', label: '黑咖风味', placeholder: '如：柑橘、花香、巧克力' },
                 { key: 'milkFlavor', label: '奶咖风味', placeholder: '如：奶油、焦糖、曲奇饼干' },
-              ] as const).map(({ key, label, placeholder }) => <label key={key} className="block">
-                <span className="text-[12px] text-[var(--c-ink-faint)]">{label}</span>
-                <textarea value={draft[key] ?? ''} onChange={e => set(key, e.target.value)} placeholder={placeholder} rows={2}
-                  className="bl-identity-textarea mt-1.5 block w-full rounded-xl px-3 py-2 bg-[var(--c-surface-soft)] outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)] resize-y" />
+              ] as const).map(({ key, label, placeholder }) => <label key={key} className="bl-identity-field flex items-center gap-3">
+                <span className="shrink-0 w-[66px] text-[12px] text-[var(--c-ink-faint)]">{label}</span>
+                <input type="text" value={draft[key] ?? ''} onChange={event => set(key, event.target.value)} placeholder={placeholder}
+                  className="min-w-0 flex-1 bg-transparent outline-none text-[14px] leading-relaxed text-[var(--c-ink-soft)]" />
               </label>)}
             </div>
           </div>
-          <OptionRow
+          <OptionRow compact
             label="烘焙程度"
             value={draft.roastLevel}
             options={ROAST_LEVELS}
             onChange={(v) => set('roastLevel', v as RoastLevel)}
           />
-          <OptionRow
+          <OptionRow compact
             label="饮用状态"
             value={draft.status}
             options={DRINK_STATUS}
             onChange={(v) => set('status', v as DrinkStatus)}
           />
+          <CoffeeRest bean={draft} onChange={patch => setDraft(current => ({ ...current, ...patch }))} />
           </div>
           <div id={`${identityFolderId}-brewing-panel`} role="tabpanel" aria-labelledby={`${identityFolderId}-brewing`} hidden={identityTab !== 'brewing'} className="bl-record-page-content">
       {/* 冲煮参数 */}
       <div className="bl-bean-dossier-section">
-        <p className="text-[12px] text-[var(--c-ink-faint)] mb-2">冲煮参数</p>
         <BrewCard grinders={grinders} brews={draft.brews} onChange={(b) => set('brews', b)} />
       </div>
 
