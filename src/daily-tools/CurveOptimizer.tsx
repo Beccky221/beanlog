@@ -78,14 +78,18 @@ export function CurveOptimizer({ config }: { config: DailyToolsConfig }) {
     const method = current.current.entry.method || 'espresso'
     const allowed = method === 'espresso' ? ['dose','yield','time','temp'] : method === 'pour-over' ? ['dose','water','time','temp'] : ['dose','water','hours']
     const values = { ...current.current.entry.values }
-    for (const key of allowed) if (observation.fields[key]?.trim()) {
-      if (values[key] && values[key] !== observation.fields[key] && !window.confirm(`“${BREW_FIELDS.find(([field]) => field === key)?.[1]}”已有 ${values[key]}，用 ${observation.fields[key]} 替换？`)) continue
-      values[key] = observation.fields[key]
-    }
-    current.current.onPatch({ values }); setMessage('已填入本条记录，点击页面上方“保存”后生效。屏幕计时不一定包含预浸泡，请核对。')
+    const filled = allowed.filter(key => observation.fields[key]?.trim())
+    if (!filled.length) { setMessage('没有可填入当前冲煮方式的参数，请先核对或补充。'); return }
+    const conflicts = filled.filter(key => values[key] && values[key] !== observation.fields[key])
+    if (conflicts.length && !window.confirm('以下参数已有记录，是否替换？\n' + conflicts.map(key => `${BREW_FIELDS.find(([field]) => field === key)?.[1]}：${values[key]} → ${observation.fields[key]}`).join('\n'))) return
+    for (const key of filled) values[key] = observation.fields[key].trim()
+    current.current.onPatch({ values, brewOptimization: { observation, analysis: analysis || undefined, feeling, method, updatedAt: new Date().toISOString() } })
+    setMessage(`已填入每日记录的 ${filled.length} 项参数，请核对后点击上方“保存”。`)
+    dismiss()
   }
   return <>
     <button type="button" ref={trigger} className="bl-tools-launch" onClick={() => setOpen(true)}>冲煮曲线优化{saved ? ' · 已有分析' : ''}</button>
+    {!open && message && <p className="bl-tools-small" role="status">{message}</p>}
     {open && createPortal(<div className="bl-tools-modal" role="dialog" aria-modal="true" aria-label="冲煮曲线优化" onKeyDown={event => {
       if (event.key === 'Escape') { event.stopPropagation(); dismiss() }
       if (event.key === 'Tab') {
@@ -109,13 +113,14 @@ export function CurveOptimizer({ config }: { config: DailyToolsConfig }) {
         {observation && <section className="bl-tools-section">
           <h3>核对识别结果</h3><p>未知项留空。请补充粉量、口感等；计时起点不清楚时，不能把屏幕时间直接视为全程萃取时长。</p>
           <div className="bl-tools-grid">{BREW_FIELDS.map(([key, label]) => <label key={key}>{label}<input inputMode="decimal" value={observation.fields[key] || ''} placeholder="未读到，可补充" disabled={!!busy} onChange={event => setField(key, event.target.value)} /></label>)}</div>
+          <p>将填入本条每日记录的{config.entry.method === 'pour-over' ? '粉量、注水量、水温、冲煮时间' : config.entry.method === 'cold-brew' ? '粉量、注水量、冷藏时长' : '粉量、出液量、萃取时间、水温'}。未读到的项目保留原值，流量与压力留在识别档案中。请先核对屏幕计时是否包含预浸泡。</p>
+          <button type="button" className="bl-tools-primary" disabled={!!busy || reading} onClick={putParameters}>填入每日记录并返回</button>
           <label>曲线类型<select disabled={!!busy} value={observation.curveType} onChange={event => { setObservation({ ...observation, curveType: event.target.value }); setAnalysis(null) }}><option value="flow">流量 (g/s)</option><option value="pressure">压力 (bar)</option><option value="temperature">温度</option><option value="weight">重量</option><option value="unknown">无法确定</option></select></label>
           <label>计时起点<select disabled={!!busy} value={observation.timingBasis} onChange={event => { setObservation({ ...observation, timingBasis: event.target.value }); setAnalysis(null) }}><option value="unknown">无法确定</option><option value="pump_start">从启动泵 / 开始注水计时</option><option value="first_drip">从首滴计时</option></select></label>
           <label>曲线观察<textarea disabled={!!busy} rows={3} value={observation.curveSummary} onChange={event => { setObservation({ ...observation, curveSummary: event.target.value }); setAnalysis(null) }} /></label>
           {observation.warnings.map((warning, index) => <p key={index}>待确认：{warning}</p>)}
           <details><summary>查看图中文字依据</summary>{observation.evidence.map((row, index) => <p key={index}>{BREW_FIELDS.find(([key]) => key === row.field)?.[1] || row.field}：{row.text}（{row.confidence === 'high' ? '较清晰' : row.confidence === 'medium' ? '需核对' : '不确定'}）</p>)}</details>
           <label>这杯的口感与目标<textarea rows={2} disabled={!!busy} value={feeling} placeholder="如：偏酸、薄，想更甜；不知道也可以留空" onChange={event => { setFeeling(event.target.value); setAnalysis(null) }} /></label>
-          <div className="bl-tools-actions"><button type="button" disabled={!!busy} onClick={putParameters}>采用已核对参数</button></div>
           <button type="button" className="bl-tools-primary" disabled={!!busy || reading} onClick={() => void execute('analyze')}>{busy === 'analyze' ? '千问正在分析…' : '确认并分析优化方向'}</button>
         </section>}
         {analysis && <section className="bl-tools-section"><h3>优化方向</h3><p>{analysis.summary}</p>
