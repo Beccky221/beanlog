@@ -19,7 +19,7 @@ export function CoffeeRest({ bean, onChange }: { bean: Bean; onChange: (patch: P
     </label>
     <div className="mt-4 flex items-center justify-between gap-3">
       <label className="flex items-center gap-2 text-[13px] text-[var(--c-ink)]">养豆天数
-        <input type="number" min={0} max={90} step={1} value={bean.restDays ?? ''} placeholder={String(guide.days)} aria-label="自定养豆天数"
+        <input type="number" min={0} max={90} step={1} value={bean.restDays ?? (bean.roastDate ? guide.days : '')} placeholder="" aria-label="自定养豆天数"
           onChange={event => {
             const value = event.target.value
             if (!value) onChange({ restDays: undefined })

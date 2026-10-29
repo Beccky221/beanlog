@@ -289,6 +289,12 @@ export function BeanDetail({
               />
             </label>
           ))}
+          <OptionRow compact
+            label="烘焙程度"
+            value={draft.roastLevel}
+            options={ROAST_LEVELS}
+            onChange={(v) => set('roastLevel', v as RoastLevel)}
+          />
           <div className="py-2">
             <p className="text-[12px] text-[var(--c-ink)]">风味档案</p>
             <div className="mt-1">
@@ -302,12 +308,6 @@ export function BeanDetail({
               </label>)}
             </div>
           </div>
-          <OptionRow compact
-            label="烘焙程度"
-            value={draft.roastLevel}
-            options={ROAST_LEVELS}
-            onChange={(v) => set('roastLevel', v as RoastLevel)}
-          />
           <OptionRow compact
             label="饮用状态"
             value={draft.status}

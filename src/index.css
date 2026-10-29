@@ -1017,3 +1017,19 @@ input::-webkit-date-and-time-value { font-family: var(--font-handwritten); }
   .bl-bean-detail-cover { gap: 12px; }
   .bl-bean-detail-cover textarea { font-size: 18px; }
 }
+
+/* 烘焙日期与名称同一行；只调整这一行。 */
+#root .bl-bean-detail section[aria-label="养豆计划"] > label:first-of-type {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+#root .bl-bean-detail section[aria-label="养豆计划"] > label:first-of-type > input[type="date"] {
+  width: 144px;
+  max-width: 55%;
+  min-width: 0;
+  flex: 0 1 144px;
+  margin-top: 0;
+  min-height: 40px;
+}

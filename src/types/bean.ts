@@ -1,3 +1,4 @@
+import type { BrewOptimization } from './brewOptimization'
 export type RoastLevel = '浅烘' | '中浅烘' | '中烘' | '中深烘' | '深烘'
 
 export type DrinkStatus = '未开袋' | '养豆中' | '正在喝' | '已喝完'
@@ -72,6 +73,7 @@ export const BREW_METHODS: BrewMethod[] = [
 
 /** 一条每日记录：某天喝这袋豆子留下的照片、冲煮参数和札记（一天可多条） */
 export interface DailyRecord {
+  brewOptimization?: BrewOptimization
   /** 这杯自己做的咖啡使用的豆库条目 */
   beanId?: string
   /** 名称快照：豆库条目被删除后仍能知道当时喝的是什么 */

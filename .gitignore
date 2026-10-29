@@ -35,3 +35,6 @@ single
 # 推荐服务密钥与本地计数
 .env*
 !.env.example
+
+# 每日照片与曲线工具的中间构建文件
+.daily-tools-build

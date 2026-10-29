@@ -1,3 +1,4 @@
+import { handleBrew } from './brew-analysis.mjs'
 import { createInviteAccess } from '../invite-access.mjs'
 
 const inviteAccess = createInviteAccess()
@@ -75,7 +76,15 @@ export const handler = async (event) => {
   if (!cfg.key) return send(503, { error: '请在函数环境变量中配置 DASHSCOPE_API_KEY。' })
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   if (daily.date !== date) daily = { date, count: 0 }
-  if (method === 'GET' && path === '/health') return send(200, { service: 'beanlog-vision', configured: true, auth: 'invite', expiresAt: grant.expiresAt, model: cfg.model, remaining: Math.max(0, cfg.limit - daily.count) })
+  if (method === 'GET' && path === '/health') return send(200, { service: 'beanlog-vision', configured: true, auth: 'invite', capabilities: ['bean-identity', 'brew-curve-v1'], expiresAt: grant.expiresAt, model: cfg.model, remaining: Math.max(0, cfg.limit - daily.count) })
+  if (method === 'POST' && ['/brew/recognize', '/brew/analyze'].includes(path)) {
+    return handleBrew({ request: { ...request, headers: inputHeaders }, path, cfg, send, validImage: image,
+      reserve: () => {
+        if (inFlight) return '上一项识图或分析尚未结束，请稍后再试。'
+        if (daily.count >= cfg.limit) return '当前实例已达到今日调用上限。'
+        daily.count++; inFlight = true; return ''
+      }, release: () => { inFlight = false } })
+  }
   if (method !== 'POST' || path !== '/recognize') return send(404, { error: '接口不存在，请使用识图函数的根地址。' })
   if (!String(inputHeaders['content-type'] || '').startsWith('application/json')) return send(415, { error: '请发送 JSON 图片请求。' })
   const body = typeof request.body === 'string' ? request.body : ''

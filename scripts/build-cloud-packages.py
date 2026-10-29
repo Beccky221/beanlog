@@ -11,6 +11,7 @@ with ZipFile(output / '咖啡实验室-千问识图-FC.zip', 'w', ZIP_DEFLATED) 
     entry = (root / 'server/vision/index.mjs').read_text().replace("from '../invite-access.mjs'", "from './invite-access.mjs'")
     archive.writestr('index.mjs', entry)
     archive.write(root / 'server/invite-access.mjs', 'invite-access.mjs')
+    archive.write(root / 'server/vision/brew-analysis.mjs', 'brew-analysis.mjs')
 
 recommend = output / '千问推荐云端'
 with ZipFile(output / '千问推荐云端.zip', 'w', ZIP_DEFLATED) as archive:

@@ -1,3 +1,6 @@
+import { editDailyPhoto } from '@/daily-tools/photoDialog'
+import { CurveOptimizer } from '@/daily-tools/CurveOptimizer'
+import '@/daily-tools/tools.css'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Coffee, ImagePlus, MapPin, PenLine, Plus, Trash2, X } from 'lucide-react'
 import { BREW_METHODS, type Bean, type DailyRecord } from '@/types/bean'
@@ -40,6 +43,7 @@ function emptyRecord(date: string): DailyRecord {
 
 function hasContent(r: DailyRecord): boolean {
   return (
+    !!r.brewOptimization ||
     r.photoIds.length > 0 ||
     !!r.beanId ||
     r.source === 'outside' ||
@@ -321,6 +325,7 @@ function DayEditor({ beans, onOpenBean, date, initial, onClose, onSave, onSavePh
       ? initial.map((r) => ({ ...r, photoIds: [...r.photoIds], values: { ...r.values } }))
       : [emptyRecord(date)],
   )
+  const createdPhotos = useRef(new Set<string>())
   /** 打开编辑器时的照片快照，用来判断退出时哪些新照片没被采用 */
   const originalPhotos = useRef<Set<string>>(
     new Set(initial.flatMap((r) => r.photoIds ?? [])),
@@ -338,7 +343,7 @@ function DayEditor({ beans, onOpenBean, date, initial, onClose, onSave, onSavePh
   /** 退出/保存时，回收这次新增但最终没留下的照片 */
   const pruneTempPhotos = (kept: DailyRecord[]) => {
     const keptIds = new Set(kept.flatMap((e) => e.photoIds ?? []))
-    const all = new Set(entries.flatMap((e) => e.photoIds ?? []))
+    const all = new Set([...createdPhotos.current, ...entries.flatMap((e) => e.photoIds ?? [])])
     const dropped = [...all].filter((id) => !keptIds.has(id) && !originalPhotos.current.has(id))
     if (dropped.length) onDropPhotos(dropped)
   }
@@ -349,12 +354,15 @@ function DayEditor({ beans, onOpenBean, date, initial, onClose, onSave, onSavePh
       ...(e.source === 'outside' ? { method: undefined, values: {}, beanId: undefined, beanName: undefined } : {}),
     }))
     pruneTempPhotos(kept)
+    const keptIds = new Set(kept.flatMap(entry => entry.photoIds))
+    const removed = [...originalPhotos.current].filter(id => !keptIds.has(id))
     onSave(kept)
+    if (removed.length) onDropPhotos(removed)
   }
 
   const close = () => {
     // 直接返回：本次新加的照片全部回收，原有数据不动
-    const all = new Set(entries.flatMap((e) => e.photoIds ?? []))
+    const all = new Set([...createdPhotos.current, ...entries.flatMap((e) => e.photoIds ?? [])])
     const dropped = [...all].filter((id) => !originalPhotos.current.has(id))
     if (dropped.length) onDropPhotos(dropped)
     onClose()
@@ -393,7 +401,12 @@ function DayEditor({ beans, onOpenBean, date, initial, onClose, onSave, onSavePh
           showIndex={entries.length > 1}
           onPatch={(patch) => patchEntry(entry.id, patch)}
           onRemove={() => removeEntry(entry.id)}
-          onSavePhoto={onSavePhoto}
+          onSavePhoto={async (blob, original) => {
+            const saved = await onSavePhoto(blob, original)
+            createdPhotos.current.add(saved.id)
+            if (saved.originalId) createdPhotos.current.add(saved.originalId)
+            return saved
+          }}
           onDropPhotos={onDropPhotos}
         />
       ))}
@@ -448,16 +461,19 @@ function EntryModule({
     const picked = Array.from(files).slice(0, room)
     if (!picked.length) return
     setBusy(true)
+    const added: string[] = []
     try {
-      const added: string[] = []
       for (const f of picked) {
-        const processed = await processPhotoFile(f)
-        const { id } = await onSavePhoto(processed.blob, processed.original)
+        const edited = await editDailyPhoto(f)
+        if (!edited) continue
+        const processed = await processPhotoFile(new File([edited], 'daily-photo.jpg', { type: edited.type }))
+        const { id } = await onSavePhoto(processed.blob)
         added.push(id)
       }
       // 用最新的 photoIds 拼接，避免连续选图时互相覆盖
       onPatch({ photoIds: [...photoIds, ...added] })
     } catch (err) {
+      if (added.length) onDropPhotos(added)
       window.alert('照片保存失败，可能是本地空间不够了。可以先去「我的 → 数据管理」导出备份。')
       console.error(err)
     } finally {
@@ -465,8 +481,20 @@ function EntryModule({
     }
   }
 
+  const editPhotoAt = async (index: number) => {
+    if (!urls[index] || busy) return
+    setBusy(true)
+    try {
+      const source = await (await fetch(urls[index]!)).blob()
+      const edited = await editDailyPhoto(source)
+      if (!edited) return
+      const { id } = await onSavePhoto(edited)
+      onPatch({ photoIds: photoIds.map((old, i) => i === index ? id : old) })
+    } catch { window.alert('照片编辑未完成，请重试。') }
+    finally { setBusy(false) }
+  }
+
   const removePhotoAt = (i: number) => {
-    onDropPhotos([photoIds[i]])
     onPatch({ photoIds: photoIds.filter((_, j) => j !== i) })
   }
 
@@ -511,6 +539,7 @@ function EntryModule({
                 ) : (
                   <div className="w-full h-full rounded-xl bg-[var(--c-surface-soft)]" />
                 )}
+                <button type="button" disabled={busy} onClick={() => void editPhotoAt(i)} aria-label={`编辑照片 ${i + 1}`} className="absolute bottom-1 inset-x-1 rounded-full bg-[var(--c-ink)] text-[var(--c-primary-ink)] text-[11px] py-1">编辑照片</button>
                 <button
                   type="button"
                   onClick={() => removePhotoAt(i)}
@@ -598,6 +627,7 @@ function EntryModule({
               className="w-full bg-[var(--c-surface-soft)] rounded-xl px-3 py-2 outline-none text-[14px] text-[var(--c-ink)] placeholder:text-[var(--c-placeholder)]"
             />
           </div>
+          {entry.source !== 'outside' && <CurveOptimizer key={entry.method} config={{ entry, bean: beans.find(item => item.id === entry.beanId), urls, onPatch }} />}
         </DrinkContext>
       </div>
     </div>

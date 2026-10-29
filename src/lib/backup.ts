@@ -1,3 +1,4 @@
+import { normalizeBrewOptimization } from '@/lib/brewOptimization'
 import { validRestDays, validRoastDate } from '@/lib/coffeeRest'
 import { APP_NAME } from '@/lib/brand'
 import { normalizeRecommendationState } from '@/lib/recommendations'
@@ -226,6 +227,7 @@ export async function restoreBackup(
           accuracy: typeof point.accuracy === 'number' && Number.isFinite(point.accuracy) && point.accuracy >= 0 ? point.accuracy : undefined }
       : undefined
     dailyRecords.push({
+      brewOptimization: normalizeBrewOptimization(raw.brewOptimization),
       beanId: typeof raw.beanId === 'string' ? raw.beanId : undefined,
       beanName: typeof raw.beanName === 'string' ? raw.beanName : undefined,
       source: raw.source === 'outside' ? 'outside' : 'home',

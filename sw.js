@@ -2,7 +2,7 @@
    - 页面导航：网络优先，离线时回退缓存
    - 静态资源（JS/CSS/图标）：缓存优先
    改动静态资源后记得把 CACHE 版本号 +1，否则老用户会继续用缓存的旧文件。 */
-const CACHE = 'beanlog-v40'
+const CACHE = 'beanlog-v45'
 const ENTRY = './index.html'
 /** 安装时预缓存，保证断网也能打开 */
 const PRECACHE = ["./", "./index.html", "./assets/preview-a2fc44fe9769.css", "./assets/preview-4c13137f06b5.js", "./manifest.webmanifest", "./icon.png"]
